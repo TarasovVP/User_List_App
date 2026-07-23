@@ -18,7 +18,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -48,10 +51,14 @@ class UserListViewModel @Inject constructor(
     private val refreshInFlight = AtomicBoolean(false)
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
+    private val cachedUsers = observeUsers()
+        .map<List<User>, List<User>?> { it }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val uiState: StateFlow<UserListUiState> = combine(
-        observeUsers(), query, sort, favoritesOnly, refreshState,
-    ) { cached, queryValue, sortValue, favoritesValue, refreshValue ->
+        cachedUsers, query, sort, favoritesOnly, refreshState,
+    ) { cachedValue, queryValue, sortValue, favoritesValue, refreshValue ->
+        val cached = cachedValue.orEmpty()
         val visible = filterAndSortUsers(cached, queryValue, sortValue, favoritesValue)
         UserListUiState(
             users = visible,
@@ -78,11 +85,14 @@ class UserListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 refreshState.value = RefreshState(running = true)
+                // Read Room before refreshing so a fast network failure cannot race the
+                // first cached emission and suppress the required Snackbar.
+                cachedUsers.filterNotNull().first()
                 when (val result = refreshUsers()) {
                     is AppResult.Success -> refreshState.value = RefreshState()
                     is AppResult.Failure -> {
                         val message = result.error.toUiText()
-                        val hadCache = uiState.value.hasCachedUsers
+                        val hadCache = cachedUsers.value.orEmpty().isNotEmpty()
                         refreshState.value = RefreshState(error = message)
                         if (hadCache) _events.tryEmit(message)
                     }

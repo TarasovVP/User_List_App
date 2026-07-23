@@ -11,6 +11,7 @@ import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.feature.users.list.UserListViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
@@ -129,6 +130,25 @@ class UserListViewModelTest {
         assertFalse(vm.uiState.value.isInitialLoading)
     }
 
+    @Test fun `fast refresh failure waits for cache before deciding to show snackbar`() = runTest(main.dispatcher) {
+        val repository = DelayedCacheRepository()
+        val vm = viewModel(repository)
+        collectState(vm)
+        runCurrent()
+
+        assertEquals(0, repository.refreshCalls)
+
+        vm.events.test {
+            repository.users.emit(listOf(sampleUser()))
+            advanceUntilIdle()
+
+            assertEquals(1, repository.refreshCalls)
+            assertTrue(vm.uiState.value.hasCachedUsers)
+            assertEquals(R.string.error_network, awaitItem().resourceId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun viewModel(repo: UserRepository) = UserListViewModel(
         ObserveUsersUseCase(repo),
         RefreshUsersUseCase(repo),
@@ -138,6 +158,21 @@ class UserListViewModelTest {
     private fun TestScope.collectState(viewModel: UserListViewModel) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
     }
+}
+
+private class DelayedCacheRepository : UserRepository {
+    val users = MutableSharedFlow<List<User>>()
+    var refreshCalls = 0
+
+    override fun observeUsers(): Flow<List<User>> = users
+    override fun observeUser(userId: Int): Flow<User?> = MutableStateFlow(null)
+    override suspend fun refreshUsers(): AppResult<Unit> {
+        refreshCalls++
+        return AppResult.Failure(AppError.Network)
+    }
+    override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
+    override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
+    override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)
 }
 
 private class FakeUserRepository(
