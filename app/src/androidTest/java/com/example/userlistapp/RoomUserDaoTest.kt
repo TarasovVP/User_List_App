@@ -3,7 +3,6 @@ package com.example.userlistapp
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.userlistapp.data.local.FavoriteEntity
 import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserEntity
@@ -53,6 +52,20 @@ class RoomUserDaoTest {
         local.replaceRemoteSnapshot(listOf(entity(3, "Updated")))
         assertEquals(listOf(1, 2, 3), dao.observeUsers().first().map { it.id }.sorted())
         assertEquals("Updated", dao.observeUser(3).first()?.firstName)
+    }
+
+    @Test fun emptyRefreshRemovesRemoteOnlyUsersAndPreservesLocalInformation() = runTest {
+        val local = RoomUserLocalDataSource(db, dao)
+        local.replaceRemoteSnapshot(listOf(entity(1, "Favorite"), entity(2, "Noted"), entity(3, "Remote only")))
+        local.setFavorite(1, true)
+        local.saveNote(2, "Keep")
+
+        local.replaceRemoteSnapshot(emptyList())
+
+        assertEquals(listOf(1, 2), dao.observeUsers().first().map { it.id }.sorted())
+        assertTrue(dao.observeUser(1).first()?.favoriteCreatedAt != null)
+        assertEquals("Keep", dao.observeUser(2).first()?.note)
+        assertNull(dao.observeUser(3).first())
     }
 
     @Test fun largeSnapshotRefreshDoesNotDependOnSQLiteHostParameterLimit() = runTest {

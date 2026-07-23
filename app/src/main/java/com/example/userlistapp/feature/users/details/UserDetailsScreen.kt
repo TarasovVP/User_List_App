@@ -148,7 +148,12 @@ private fun DetailsContent(
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            if (state.canDelete) TextButton(onClick = onDeleteNote) { Icon(Icons.Default.Delete, null); Text(stringResource(R.string.delete_note)) }
+            if (state.canDelete) {
+                TextButton(onClick = onDeleteNote, modifier = Modifier.testTag("delete_note")) {
+                    Icon(Icons.Default.Delete, null)
+                    Text(stringResource(R.string.delete_note))
+                }
+            }
             Button(onClick = onSaveNote, enabled = state.canSave, modifier = Modifier.testTag("save_note")) { Text(stringResource(R.string.save_note)) }
         }
     }

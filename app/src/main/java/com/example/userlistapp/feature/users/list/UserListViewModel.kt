@@ -52,23 +52,7 @@ class UserListViewModel @Inject constructor(
     val uiState: StateFlow<UserListUiState> = combine(
         observeUsers(), query, sort, favoritesOnly, refreshState,
     ) { cached, queryValue, sortValue, favoritesValue, refreshValue ->
-        val needle = queryValue.trim()
-        val visible = cached.asSequence()
-            .filter { !favoritesValue || it.isFavorite }
-            .filter {
-                needle.isBlank() || listOf(
-                    it.fullName,
-                    it.email,
-                    it.username,
-                    it.role,
-                    it.companyName,
-                    it.department,
-                    it.jobTitle,
-                )
-                    .any { value -> value.contains(needle, ignoreCase = true) }
-            }
-            .sortedWith(compareBy<User> { it.fullName.lowercase() }.let { if (sortValue == UserSort.NAME_ASCENDING) it else it.reversed() })
-            .toList()
+        val visible = filterAndSortUsers(cached, queryValue, sortValue, favoritesValue)
         UserListUiState(
             users = visible,
             hasCachedUsers = cached.isNotEmpty(),
@@ -111,4 +95,22 @@ class UserListViewModel @Inject constructor(
     }
 
     private data class RefreshState(val running: Boolean = false, val error: UiText? = null)
+}
+
+internal fun filterAndSortUsers(
+    users: List<User>,
+    query: String,
+    sort: UserSort,
+    favoritesOnly: Boolean,
+): List<User> {
+    val needle = query.trim()
+    val nameComparator = compareBy<User> { it.fullName.lowercase() }
+    return users.asSequence()
+        .filter { !favoritesOnly || it.isFavorite }
+        .filter { user ->
+            needle.isBlank() || listOf(user.fullName, user.email, user.companyName)
+                .any { value -> value.contains(needle, ignoreCase = true) }
+        }
+        .sortedWith(if (sort == UserSort.NAME_ASCENDING) nameComparator else nameComparator.reversed())
+        .toList()
 }

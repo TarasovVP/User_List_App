@@ -39,11 +39,29 @@ class UserListViewModelTest {
         collectState(vm)
         advanceUntilIdle()
         assertEquals(2, vm.uiState.value.users.size)
-        vm.setQuery("ANALYTICAL")
+        assertFalse(vm.uiState.value.isInitialLoading)
+        assertNull(vm.uiState.value.initialError)
+
+        vm.setQuery("EXAMPLE.COM")
         vm.setSort(UserSort.NAME_DESCENDING)
+        advanceUntilIdle()
+        assertEquals(listOf(1, 2), vm.uiState.value.users.map(User::id))
+
         vm.setFavoritesOnly(true)
         advanceUntilIdle()
         assertEquals(listOf(2), vm.uiState.value.users.map(User::id))
+    }
+
+    @Test fun `successful empty load shows empty content rather than an error`() = runTest(main.dispatcher) {
+        val vm = viewModel(FakeUserRepository(emptyList()))
+        collectState(vm)
+
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.users.isEmpty())
+        assertFalse(vm.uiState.value.isInitialLoading)
+        assertFalse(vm.uiState.value.hasCachedUsers)
+        assertNull(vm.uiState.value.initialError)
     }
 
     @Test fun `initial network failure without cache shows full screen error`() = runTest(main.dispatcher) {
@@ -65,6 +83,11 @@ class UserListViewModelTest {
             advanceUntilIdle()
             assertEquals(1, vm.uiState.value.users.size)
             assertEquals(R.string.error_network, awaitItem().resourceId)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        vm.events.test {
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -37,6 +37,22 @@ class UserRepositoryImplTest {
         assertEquals(9, local.saved.single().id)
     }
 
+    @Test fun `refresh preserves favorite and note metadata owned by local storage`() = runTest {
+        val local = FakeLocal().apply {
+            saved = listOf(entity(1))
+            favoriteIds += 1
+            notes[1] = "Keep this"
+        }
+        val remote = FakeRemote(listOf(UserDto(id = 1, firstName = "Updated")))
+
+        val result = UserRepositoryImpl(remote, local, Dispatchers.Unconfined).refreshUsers()
+
+        assertTrue(result is AppResult.Success)
+        assertEquals("Updated", local.saved.single().firstName)
+        assertEquals(setOf(1), local.favoriteIds)
+        assertEquals(mapOf(1 to "Keep this"), local.notes)
+    }
+
     @Test fun `large snapshot is accepted without SQLite parameter assumptions`() = runTest {
         val local = FakeLocal()
         val remote = FakeRemote(List(1_000) { index -> UserDto(id = index + 1) })
@@ -61,7 +77,7 @@ class UserRepositoryImplTest {
         assertEquals(listOf(9), local.saved.map { it.id })
     }
 
-    @Test fun `empty remote snapshot is rejected without changing local cache`() = runTest {
+    @Test fun `empty remote snapshot is persisted as a valid result`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
 
         val result = UserRepositoryImpl(
@@ -70,8 +86,8 @@ class UserRepositoryImplTest {
             Dispatchers.Unconfined,
         ).refreshUsers()
 
-        assertEquals(AppResult.Failure(AppError.InvalidData), result)
-        assertEquals(listOf(9), local.saved.map { it.id })
+        assertTrue(result is AppResult.Success)
+        assertTrue(local.saved.isEmpty())
     }
 
     @Test(expected = CancellationException::class)
@@ -93,15 +109,24 @@ private class FakeRemote(private val result: List<UserDto>) : UserRemoteDataSour
 private class FakeLocal : UserLocalDataSource {
     var saved: List<UserEntity> = emptyList()
     var note: String? = null
+    val favoriteIds = mutableSetOf<Int>()
+    val notes = mutableMapOf<Int, String>()
     private val rows = MutableStateFlow<List<UserWithLocal>>(emptyList())
     override fun observeUsers(): Flow<List<UserWithLocal>> = rows
     override fun observeUser(userId: Int): Flow<UserWithLocal?> = rows.map { it.firstOrNull { row -> row.id == userId } }
     override suspend fun replaceRemoteSnapshot(users: List<UserEntity>) {
-        require(users.isNotEmpty()) { "Remote snapshot must not be empty" }
         saved = users
     }
-    override suspend fun setFavorite(userId: Int, favorite: Boolean) = Unit
-    override suspend fun saveNote(userId: Int, note: String) { this.note = note }
-    override suspend fun deleteNote(userId: Int) { note = null }
+    override suspend fun setFavorite(userId: Int, favorite: Boolean) {
+        if (favorite) favoriteIds += userId else favoriteIds -= userId
+    }
+    override suspend fun saveNote(userId: Int, note: String) {
+        this.note = note
+        notes[userId] = note
+    }
+    override suspend fun deleteNote(userId: Int) {
+        note = null
+        notes.remove(userId)
+    }
 }
 private fun entity(id: Int) = UserEntity(id, "A", "B", 1, "e", "p", "u", "", "r", "c", "d", "t", "s", "city", "state", "country", 0)

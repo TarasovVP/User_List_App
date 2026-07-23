@@ -10,7 +10,6 @@ class RoomUserLocalDataSource(
     override fun observeUser(userId: Int) = dao.observeUser(userId)
 
     override suspend fun replaceRemoteSnapshot(users: List<UserEntity>) {
-        require(users.isNotEmpty()) { "Remote snapshot must not be empty" }
         database.withTransaction {
             val candidateBatchId = System.currentTimeMillis()
             val latestBatchId = dao.latestSnapshotBatchId()

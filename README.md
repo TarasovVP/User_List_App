@@ -54,7 +54,6 @@ Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, Hilt, R
 - `feature`: list, details, and settings UI/ViewModels
 - `worker`: periodic sync worker and scheduler
 - `di`: dependency graph
-- `docs`: AI-assisted development and performance review records
 
 ## Build and run
 
@@ -75,4 +74,4 @@ Install `app/build/outputs/apk/debug/app-debug.apk`, then launch while online fo
 ./gradlew connectedDebugAndroidTest
 ```
 
-The connected test command requires a running emulator or attached device. Runtime performance profiling and visual review also require an Android runtime; see [docs/performance-review.md](docs/performance-review.md).
+The connected test command requires a running emulator or attached device. Runtime performance profiling and visual review also require an Android runtime.
