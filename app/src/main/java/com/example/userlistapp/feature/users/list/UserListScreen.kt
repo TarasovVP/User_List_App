@@ -30,7 +30,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
@@ -56,7 +56,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
 import com.example.userlistapp.domain.model.ThemeMode
@@ -140,7 +140,7 @@ private fun UserControls(state: UserListUiState, onQuery: (String) -> Unit, onSo
                     value = stringResource(if (state.sort == UserSort.NAME_ASCENDING) R.string.sort_az else R.string.sort_za),
                     onValueChange = {}, readOnly = true, label = { Text(stringResource(R.string.sort)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
                 ExposedDropdownMenu(expanded, { expanded = false }) {
                     UserSort.entries.forEach { sort -> DropdownMenuItem(

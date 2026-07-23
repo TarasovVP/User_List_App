@@ -58,7 +58,7 @@ Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, Hilt, R
 
 ## Build and run
 
-Requirements: JDK 17 and Android SDK 36. Open the repository in Android Studio or run:
+Requirements: JDK 17 and Android SDK 37. Open the repository in Android Studio or run:
 
 ```bash
 ./gradlew assembleDebug
