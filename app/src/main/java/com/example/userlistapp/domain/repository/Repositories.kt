@@ -1,12 +1,12 @@
 package com.example.userlistapp.domain.repository
 
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
+import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
-import com.example.userlistapp.domain.model.Account
-import com.example.userlistapp.domain.model.SessionState
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {

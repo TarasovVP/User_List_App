@@ -54,7 +54,11 @@ class AuthSessionRepositoryImpl(
         } catch (error: CancellationException) {
             throw error
         } catch (error: HttpException) {
-            AppResult.Failure(if (error.code() == 400 || error.code() == 401) AppError.InvalidCredentials else AppError.Http(error.code()))
+            AppResult.Failure(
+                if (error.code() == 400 || error.code() == 401) AppError.InvalidCredentials else AppError.Http(
+                    error.code()
+                )
+            )
         } catch (error: IOException) {
             AppResult.Failure(AppError.Network)
         } catch (_: Exception) {

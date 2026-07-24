@@ -12,8 +12,11 @@ import javax.inject.Inject
 
 @HiltAndroidApp
 class UserListApplication : Application(), Configuration.Provider {
-    @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var syncCoordinator: SyncCoordinator
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+    @Inject
+    lateinit var syncCoordinator: SyncCoordinator
+
     // This scope intentionally lives for the entire app process.
     private val processScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

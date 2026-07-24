@@ -30,14 +30,24 @@ data class UserEntity(
 
 @Entity(
     tableName = "favorite_users",
-    foreignKeys = [ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)],
+    foreignKeys = [ForeignKey(
+        entity = UserEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["userId"],
+        onDelete = ForeignKey.CASCADE
+    )],
     indices = [Index("userId")],
 )
 data class FavoriteEntity(@PrimaryKey val userId: Int, val createdAt: Long)
 
 @Entity(
     tableName = "user_notes",
-    foreignKeys = [ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)],
+    foreignKeys = [ForeignKey(
+        entity = UserEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["userId"],
+        onDelete = ForeignKey.CASCADE
+    )],
     indices = [Index("userId")],
 )
 data class UserNoteEntity(@PrimaryKey val userId: Int, val note: String, val modifiedAt: Long)

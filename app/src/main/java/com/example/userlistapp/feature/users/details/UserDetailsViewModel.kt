@@ -64,7 +64,9 @@ class UserDetailsViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserDetailsUiState())
 
-    fun setNoteDraft(value: String) { draft.value = value }
+    fun setNoteDraft(value: String) {
+        draft.value = value
+    }
 
     fun toggleFavorite() {
         if (!uiState.value.canToggleFavorite) return

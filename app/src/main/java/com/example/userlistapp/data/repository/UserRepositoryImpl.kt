@@ -12,9 +12,9 @@ import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.repository.UserRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import java.io.IOException
@@ -24,8 +24,11 @@ class UserRepositoryImpl(
     private val local: UserLocalDataSource,
     @DefaultDispatcher private val mappingDispatcher: CoroutineDispatcher,
 ) : UserRepository {
-    override fun observeUsers(): Flow<List<User>> = local.observeUsers().map { list -> list.map(UserWithLocal::toDomain) }
-    override fun observeUser(userId: Int): Flow<User?> = local.observeUser(userId).map { it?.toDomain() }
+    override fun observeUsers(): Flow<List<User>> =
+        local.observeUsers().map { list -> list.map(UserWithLocal::toDomain) }
+
+    override fun observeUser(userId: Int): Flow<User?> =
+        local.observeUser(userId).map { it?.toDomain() }
 
     override suspend fun refreshUsers(): AppResult<Unit> = operation {
         val remoteUsers = remote.getUsers()
@@ -34,8 +37,12 @@ class UserRepositoryImpl(
         local.replaceRemoteSnapshot(entities)
     }
 
-    override suspend fun setFavorite(userId: Int, favorite: Boolean) = operation { local.setFavorite(userId, favorite) }
-    override suspend fun saveNote(userId: Int, note: String) = operation { local.saveNote(userId, note) }
+    override suspend fun setFavorite(userId: Int, favorite: Boolean) =
+        operation { local.setFavorite(userId, favorite) }
+
+    override suspend fun saveNote(userId: Int, note: String) =
+        operation { local.saveNote(userId, note) }
+
     override suspend fun deleteNote(userId: Int) = operation { local.deleteNote(userId) }
 }
 

@@ -24,7 +24,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class SettingsUiState(val settings: AppSettings = AppSettings(), val syncState: SyncState = SyncState.IDLE)
+data class SettingsUiState(
+    val settings: AppSettings = AppSettings(),
+    val syncState: SyncState = SyncState.IDLE,
+)
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(

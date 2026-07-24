@@ -36,26 +36,30 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class UserDetailsViewModelTest {
-    @get:Rule val main = MainDispatcherRule()
+    @get:Rule
+    val main = MainDispatcherRule()
 
-    @Test fun `draft survives unrelated database updates and controls save availability`() = runTest(main.dispatcher) {
-        val repository = DetailsRepository(sampleUser(note = "stored"))
-        val viewModel = viewModel(repository)
-        collectState(viewModel)
-        advanceUntilIdle()
+    @Test
+    fun `draft survives unrelated database updates and controls save availability`() =
+        runTest(main.dispatcher) {
+            val repository = DetailsRepository(sampleUser(note = "stored"))
+            val viewModel = viewModel(repository)
+            collectState(viewModel)
+            advanceUntilIdle()
 
-        assertEquals("stored", viewModel.uiState.value.noteDraft)
-        assertFalse(viewModel.uiState.value.canSave)
+            assertEquals("stored", viewModel.uiState.value.noteDraft)
+            assertFalse(viewModel.uiState.value.canSave)
 
-        viewModel.setNoteDraft("edited")
-        repository.emit(repository.user.value.copy(isFavorite = true))
-        advanceUntilIdle()
+            viewModel.setNoteDraft("edited")
+            repository.emit(repository.user.value.copy(isFavorite = true))
+            advanceUntilIdle()
 
-        assertEquals("edited", viewModel.uiState.value.noteDraft)
-        assertTrue(viewModel.uiState.value.canSave)
-    }
+            assertEquals("edited", viewModel.uiState.value.noteDraft)
+            assertTrue(viewModel.uiState.value.canSave)
+        }
 
-    @Test fun `operation failure emits an error event`() = runTest(main.dispatcher) {
+    @Test
+    fun `operation failure emits an error event`() = runTest(main.dispatcher) {
         val repository = DetailsRepository(
             sampleUser(),
             toggleResult = AppResult.Failure(AppError.Network),
@@ -72,25 +76,28 @@ class UserDetailsViewModelTest {
         }
     }
 
-    @Test fun `successful delete clears draft and returns it to database source of truth`() = runTest(main.dispatcher) {
-        val repository = DetailsRepository(sampleUser(note = "stored"))
-        val viewModel = viewModel(repository)
-        collectState(viewModel)
-        advanceUntilIdle()
-        viewModel.setNoteDraft("edited")
+    @Test
+    fun `successful delete clears draft and returns it to database source of truth`() =
+        runTest(main.dispatcher) {
+            val repository = DetailsRepository(sampleUser(note = "stored"))
+            val viewModel = viewModel(repository)
+            collectState(viewModel)
+            advanceUntilIdle()
+            viewModel.setNoteDraft("edited")
 
-        viewModel.deleteNote()
-        advanceUntilIdle()
+            viewModel.deleteNote()
+            advanceUntilIdle()
 
-        assertEquals("", viewModel.uiState.value.noteDraft)
-        assertFalse(viewModel.uiState.value.canDelete)
+            assertEquals("", viewModel.uiState.value.noteDraft)
+            assertFalse(viewModel.uiState.value.canDelete)
 
-        repository.emit(repository.user.value.copy(note = "restored"))
-        advanceUntilIdle()
-        assertEquals("restored", viewModel.uiState.value.noteDraft)
-    }
+            repository.emit(repository.user.value.copy(note = "restored"))
+            advanceUntilIdle()
+            assertEquals("restored", viewModel.uiState.value.noteDraft)
+        }
 
-    @Test fun `successful save trims note and clears draft override`() = runTest(main.dispatcher) {
+    @Test
+    fun `successful save trims note and clears draft override`() = runTest(main.dispatcher) {
         val repository = DetailsRepository(sampleUser(note = "stored"))
         val viewModel = viewModel(repository)
         collectState(viewModel)
@@ -106,44 +113,48 @@ class UserDetailsViewModelTest {
         assertFalse(viewModel.uiState.value.canSave)
     }
 
-    @Test fun `delete without persisted note keeps active draft and skips repository`() = runTest(main.dispatcher) {
-        val repository = DetailsRepository(sampleUser(note = null))
-        val viewModel = viewModel(repository)
-        collectState(viewModel)
-        advanceUntilIdle()
-        viewModel.setNoteDraft("unsaved")
-        advanceUntilIdle()
+    @Test
+    fun `delete without persisted note keeps active draft and skips repository`() =
+        runTest(main.dispatcher) {
+            val repository = DetailsRepository(sampleUser(note = null))
+            val viewModel = viewModel(repository)
+            collectState(viewModel)
+            advanceUntilIdle()
+            viewModel.setNoteDraft("unsaved")
+            advanceUntilIdle()
 
-        viewModel.deleteNote()
-        advanceUntilIdle()
+            viewModel.deleteNote()
+            advanceUntilIdle()
 
-        assertEquals(0, repository.deleteCalls)
-        assertEquals("unsaved", viewModel.uiState.value.noteDraft)
-    }
+            assertEquals(0, repository.deleteCalls)
+            assertEquals("unsaved", viewModel.uiState.value.noteDraft)
+        }
 
-    @Test fun `active operation rejects duplicate favorite and delete calls`() = runTest(main.dispatcher) {
-        val favoriteGate = CompletableDeferred<Unit>()
-        val repository = DetailsRepository(
-            sampleUser(note = "stored"),
-            beforeToggle = { favoriteGate.await() },
-        )
-        val viewModel = viewModel(repository)
-        collectState(viewModel)
-        advanceUntilIdle()
+    @Test
+    fun `active operation rejects duplicate favorite and delete calls`() =
+        runTest(main.dispatcher) {
+            val favoriteGate = CompletableDeferred<Unit>()
+            val repository = DetailsRepository(
+                sampleUser(note = "stored"),
+                beforeToggle = { favoriteGate.await() },
+            )
+            val viewModel = viewModel(repository)
+            collectState(viewModel)
+            advanceUntilIdle()
 
-        viewModel.toggleFavorite()
-        viewModel.toggleFavorite()
-        viewModel.deleteNote()
-        runCurrent()
+            viewModel.toggleFavorite()
+            viewModel.toggleFavorite()
+            viewModel.deleteNote()
+            runCurrent()
 
-        assertEquals(1, repository.toggleCalls)
-        assertEquals(0, repository.deleteCalls)
-        assertTrue(viewModel.uiState.value.isSaving)
+            assertEquals(1, repository.toggleCalls)
+            assertEquals(0, repository.deleteCalls)
+            assertTrue(viewModel.uiState.value.isSaving)
 
-        favoriteGate.complete(Unit)
-        advanceUntilIdle()
-        assertFalse(viewModel.uiState.value.isSaving)
-    }
+            favoriteGate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
 
     private fun viewModel(repository: DetailsRepository) = UserDetailsViewModel(
         SavedStateHandle(mapOf("userId" to repository.currentUserId)),
@@ -174,17 +185,21 @@ private class DetailsRepository(
     }
 
     override fun observeUsers(): Flow<List<User>> = user.map(::listOf)
-    override fun observeUser(userId: Int): Flow<User?> = user.map { it.takeIf { value -> value.id == userId } }
+    override fun observeUser(userId: Int): Flow<User?> =
+        user.map { it.takeIf { value -> value.id == userId } }
+
     override suspend fun refreshUsers(): AppResult<Unit> = AppResult.Success(Unit)
     override suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit> {
         toggleCalls++
         beforeToggle()
         return toggleResult
     }
+
     override suspend fun saveNote(userId: Int, note: String): AppResult<Unit> {
         user.value = user.value.copy(note = note)
         return AppResult.Success(Unit)
     }
+
     override suspend fun deleteNote(userId: Int): AppResult<Unit> {
         deleteCalls++
         beforeDelete()

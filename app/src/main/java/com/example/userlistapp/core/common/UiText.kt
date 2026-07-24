@@ -17,6 +17,7 @@ fun AppError.toUiText(): UiText = when (this) {
         resourceId = if (code >= 500) R.string.error_service else R.string.error_request,
         args = listOf(code),
     )
+
     AppError.InvalidData -> UiText(R.string.error_data)
     AppError.InvalidNote -> UiText(R.string.error_invalid_note)
     AppError.AuthenticationRequired -> UiText(R.string.authentication_required)

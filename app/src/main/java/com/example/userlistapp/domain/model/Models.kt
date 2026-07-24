@@ -21,9 +21,14 @@ data class User(
     val note: String? = null,
     val noteModifiedAt: Long? = null,
 ) {
-    val fullName: String get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
-    val initials: String get() = listOf(firstName, lastName).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("").take(2)
-    val fullAddress: String get() = listOf(street, city, state, country).filter(String::isNotBlank).joinToString(", ")
+    val fullName: String
+        get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
+    val initials: String
+        get() = listOf(firstName, lastName).mapNotNull {
+            it.firstOrNull()?.uppercase()
+        }.joinToString("").take(2)
+    val fullAddress: String
+        get() = listOf(street, city, state, country).filter(String::isNotBlank).joinToString(", ")
 }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
@@ -52,5 +57,6 @@ data class Account(
     val email: String,
     val remoteImageUrl: String,
 ) {
-    val fullName: String get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
+    val fullName: String
+        get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
 }

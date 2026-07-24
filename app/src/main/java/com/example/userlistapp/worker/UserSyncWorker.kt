@@ -23,9 +23,14 @@ class UserSyncWorker @AssistedInject constructor(
             settings.setLastSuccessfulSync(System.currentTimeMillis())
             Result.success()
         }
+
         is AppResult.Failure ->
             if (result.error == AppError.AuthenticationRequired) Result.success()
-            else if (shouldRetry(result.error, runAttemptCount)) Result.retry() else Result.failure()
+            else if (shouldRetry(
+                    result.error,
+                    runAttemptCount
+                )
+            ) Result.retry() else Result.failure()
     }
 
     companion object {

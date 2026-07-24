@@ -3,23 +3,27 @@ package com.example.userlistapp
 import app.cash.turbine.test
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
-import com.example.userlistapp.domain.model.User
-import com.example.userlistapp.domain.model.UserSort
-import com.example.userlistapp.domain.repository.UserRepository
-import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
+import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.UserSort
+import com.example.userlistapp.domain.repository.AuthSessionRepository
+import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
 import com.example.userlistapp.feature.users.list.UserListViewModel
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -33,56 +37,65 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserListViewModelTest {
-    @get:Rule val main = MainDispatcherRule()
+    @get:Rule
+    val main = MainDispatcherRule()
 
-    @Test fun `successful load and search sort favorite filters combine reactively`() = runTest(main.dispatcher) {
-        val repo = FakeUserRepository(listOf(sampleUser(1, "Zoe", "Able"), sampleUser(2, "ada", "Lovelace", favorite = true)))
-        val vm = viewModel(repo)
-        collectState(vm)
-        advanceUntilIdle()
-        assertEquals(2, vm.uiState.value.users.size)
-        assertFalse(vm.uiState.value.isInitialLoading)
-        assertNull(vm.uiState.value.initialError)
+    @Test
+    fun `successful load and search sort favorite filters combine reactively`() =
+        runTest(main.dispatcher) {
+            val repo = FakeUserRepository(
+                listOf(
+                    sampleUser(1, "Zoe", "Able"),
+                    sampleUser(2, "ada", "Lovelace", favorite = true)
+                )
+            )
+            val vm = viewModel(repo)
+            collectState(vm)
+            advanceUntilIdle()
+            assertEquals(2, vm.uiState.value.users.size)
+            assertFalse(vm.uiState.value.isInitialLoading)
+            assertNull(vm.uiState.value.initialError)
 
-        vm.setQuery("EXAMPLE.COM")
-        vm.setSort(UserSort.NAME_DESCENDING)
-        advanceUntilIdle()
-        assertEquals(listOf(1, 2), vm.uiState.value.users.map(User::id))
+            vm.setQuery("EXAMPLE.COM")
+            vm.setSort(UserSort.NAME_DESCENDING)
+            advanceUntilIdle()
+            assertEquals(listOf(1, 2), vm.uiState.value.users.map(User::id))
 
-        vm.setFavoritesOnly(true)
-        advanceUntilIdle()
-        assertEquals(listOf(2), vm.uiState.value.users.map(User::id))
-    }
+            vm.setFavoritesOnly(true)
+            advanceUntilIdle()
+            assertEquals(listOf(2), vm.uiState.value.users.map(User::id))
+        }
 
-    @Test fun `successful empty load shows empty content rather than an error`() = runTest(main.dispatcher) {
-        val vm = viewModel(FakeUserRepository(emptyList()))
-        collectState(vm)
+    @Test
+    fun `successful empty load shows empty content rather than an error`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel(FakeUserRepository(emptyList()))
+            collectState(vm)
 
-        advanceUntilIdle()
+            advanceUntilIdle()
 
-        assertTrue(vm.uiState.value.users.isEmpty())
-        assertFalse(vm.uiState.value.isInitialLoading)
-        assertFalse(vm.uiState.value.hasCachedUsers)
-        assertNull(vm.uiState.value.initialError)
-    }
+            assertTrue(vm.uiState.value.users.isEmpty())
+            assertFalse(vm.uiState.value.isInitialLoading)
+            assertFalse(vm.uiState.value.hasCachedUsers)
+            assertNull(vm.uiState.value.initialError)
+        }
 
-    @Test fun `initial network failure without cache shows full screen error`() = runTest(main.dispatcher) {
-        val repo = FakeUserRepository(emptyList(), AppResult.Failure(AppError.Network))
-        val vm = viewModel(repo)
-        collectState(vm)
-        advanceUntilIdle()
-        assertTrue(vm.uiState.value.users.isEmpty())
-        assertNotNull(vm.uiState.value.initialError)
-    }
+    @Test
+    fun `initial network failure without cache shows full screen error`() =
+        runTest(main.dispatcher) {
+            val repo = FakeUserRepository(emptyList(), AppResult.Failure(AppError.Network))
+            val vm = viewModel(repo)
+            collectState(vm)
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value.users.isEmpty())
+            assertNotNull(vm.uiState.value.initialError)
+        }
 
-    @Test fun `refresh failure keeps cache and emits snackbar once`() = runTest(main.dispatcher) {
+    @Test
+    fun `refresh failure keeps cache and emits snackbar once`() = runTest(main.dispatcher) {
         val repo = FakeUserRepository(listOf(sampleUser()), AppResult.Failure(AppError.Network))
         val vm = viewModel(repo)
         collectState(vm)
@@ -101,23 +114,26 @@ class UserListViewModelTest {
         }
     }
 
-    @Test fun `initial loading remains visible while first refresh is running`() = runTest(main.dispatcher) {
-        val gate = CompletableDeferred<Unit>()
-        val repository = FakeUserRepository(emptyList(), beforeRefresh = { gate.await() })
-        val vm = viewModel(repository)
-        collectState(vm)
-        assertTrue(vm.uiState.value.isInitialLoading)
-        runCurrent()
-        assertTrue(vm.uiState.value.isInitialLoading)
-        repeat(10) { vm.refresh() }
-        runCurrent()
-        assertEquals(1, repository.refreshCalls)
-        gate.complete(Unit)
-        advanceUntilIdle()
-        assertFalse(vm.uiState.value.isInitialLoading)
-    }
+    @Test
+    fun `initial loading remains visible while first refresh is running`() =
+        runTest(main.dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val repository = FakeUserRepository(emptyList(), beforeRefresh = { gate.await() })
+            val vm = viewModel(repository)
+            collectState(vm)
+            assertTrue(vm.uiState.value.isInitialLoading)
+            runCurrent()
+            assertTrue(vm.uiState.value.isInitialLoading)
+            repeat(10) { vm.refresh() }
+            runCurrent()
+            assertEquals(1, repository.refreshCalls)
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(vm.uiState.value.isInitialLoading)
+        }
 
-    @Test fun `retry without cache shows loading until refresh completes`() = runTest(main.dispatcher) {
+    @Test
+    fun `retry without cache shows loading until refresh completes`() = runTest(main.dispatcher) {
         val repository = FakeUserRepository(emptyList(), AppResult.Failure(AppError.Network))
         val vm = viewModel(repository)
         collectState(vm)
@@ -138,38 +154,42 @@ class UserListViewModelTest {
         assertFalse(vm.uiState.value.isInitialLoading)
     }
 
-    @Test fun `fast refresh failure waits for cache before deciding to show snackbar`() = runTest(main.dispatcher) {
-        val repository = DelayedCacheRepository()
-        val vm = viewModel(repository)
-        collectState(vm)
-        runCurrent()
+    @Test
+    fun `fast refresh failure waits for cache before deciding to show snackbar`() =
+        runTest(main.dispatcher) {
+            val repository = DelayedCacheRepository()
+            val vm = viewModel(repository)
+            collectState(vm)
+            runCurrent()
 
-        assertEquals(0, repository.refreshCalls)
+            assertEquals(0, repository.refreshCalls)
 
-        vm.events.test {
-            repository.users.emit(listOf(sampleUser()))
+            vm.events.test {
+                repository.users.emit(listOf(sampleUser()))
+                advanceUntilIdle()
+
+                assertEquals(1, repository.refreshCalls)
+                assertTrue(vm.uiState.value.hasCachedUsers)
+                assertEquals(R.string.error_network, awaitItem().resourceId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `mockk repository flow is rendered and initial refresh is invoked`() =
+        runTest(main.dispatcher) {
+            val repository = mockk<UserRepository>()
+            every { repository.observeUsers() } returns MutableStateFlow(listOf(sampleUser()))
+            coEvery { repository.refreshUsers() } returns AppResult.Success(Unit)
+            val vm = viewModel(repository)
+            collectState(vm)
+
             advanceUntilIdle()
 
-            assertEquals(1, repository.refreshCalls)
-            assertTrue(vm.uiState.value.hasCachedUsers)
-            assertEquals(R.string.error_network, awaitItem().resourceId)
-            cancelAndIgnoreRemainingEvents()
+            assertEquals(listOf(1), vm.uiState.value.users.map(User::id))
+            assertFalse(vm.uiState.value.isInitialLoading)
+            coVerify(exactly = 1) { repository.refreshUsers() }
         }
-    }
-
-    @Test fun `mockk repository flow is rendered and initial refresh is invoked`() = runTest(main.dispatcher) {
-        val repository = mockk<UserRepository>()
-        every { repository.observeUsers() } returns MutableStateFlow(listOf(sampleUser()))
-        coEvery { repository.refreshUsers() } returns AppResult.Success(Unit)
-        val vm = viewModel(repository)
-        collectState(vm)
-
-        advanceUntilIdle()
-
-        assertEquals(listOf(1), vm.uiState.value.users.map(User::id))
-        assertFalse(vm.uiState.value.isInitialLoading)
-        coVerify(exactly = 1) { repository.refreshUsers() }
-    }
 
     private fun viewModel(repo: UserRepository) = UserListViewModel(
         ObserveUsersUseCase(repo),
@@ -189,9 +209,11 @@ private object SignedInSessionRepository : AuthSessionRepository {
     override suspend fun signIn(username: String, password: String) = AppResult.Success(
         Account(1, username, "Test", "User", "test@example.com", ""),
     )
+
     override suspend fun loadAccount(userId: Int) = AppResult.Success(
         Account(userId, "test", "Test", "User", "test@example.com", ""),
     )
+
     override suspend fun signOut() = AppResult.Success(Unit)
     override suspend fun setLocalAvatar(uri: String?) = AppResult.Success(Unit)
 }
@@ -206,6 +228,7 @@ private class DelayedCacheRepository : UserRepository {
         refreshCalls++
         return AppResult.Failure(AppError.Network)
     }
+
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)
@@ -219,8 +242,13 @@ private class FakeUserRepository(
     var refreshCalls = 0
     private val users = MutableStateFlow(initial)
     override fun observeUsers(): Flow<List<User>> = users
-    override fun observeUser(userId: Int) = users.map { list -> list.firstOrNull { it.id == userId } }
-    override suspend fun refreshUsers(): AppResult<Unit> { refreshCalls++; beforeRefresh(); return refreshResult }
+    override fun observeUser(userId: Int) =
+        users.map { list -> list.firstOrNull { it.id == userId } }
+
+    override suspend fun refreshUsers(): AppResult<Unit> {
+        refreshCalls++; beforeRefresh(); return refreshResult
+    }
+
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)

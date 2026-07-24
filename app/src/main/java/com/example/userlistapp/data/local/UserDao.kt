@@ -21,18 +21,25 @@ interface UserDao {
     @Query("$SELECT_WITH_LOCAL WHERE users.id = :userId")
     fun observeUser(userId: Int): Flow<UserWithLocal?>
 
-    @Upsert suspend fun upsertUsers(users: List<UserEntity>)
-    @Upsert suspend fun upsertFavorite(favorite: FavoriteEntity)
-    @Upsert suspend fun upsertNote(note: UserNoteEntity)
+    @Upsert
+    suspend fun upsertUsers(users: List<UserEntity>)
+    @Upsert
+    suspend fun upsertFavorite(favorite: FavoriteEntity)
+    @Upsert
+    suspend fun upsertNote(note: UserNoteEntity)
 
-    @Query("DELETE FROM favorite_users WHERE userId = :userId") suspend fun deleteFavorite(userId: Int)
-    @Query("DELETE FROM user_notes WHERE userId = :userId") suspend fun deleteNote(userId: Int)
+    @Query("DELETE FROM favorite_users WHERE userId = :userId")
+    suspend fun deleteFavorite(userId: Int)
+    @Query("DELETE FROM user_notes WHERE userId = :userId")
+    suspend fun deleteNote(userId: Int)
 
     @Query("SELECT MAX(remoteUpdatedAt) FROM users")
     suspend fun latestSnapshotBatchId(): Long?
 
-    @Query("""DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
+    @Query(
+        """DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
         AND id NOT IN (SELECT userId FROM favorite_users)
-        AND id NOT IN (SELECT userId FROM user_notes)""")
+        AND id NOT IN (SELECT userId FROM user_notes)"""
+    )
     suspend fun deleteStale(snapshotBatchId: Long)
 }

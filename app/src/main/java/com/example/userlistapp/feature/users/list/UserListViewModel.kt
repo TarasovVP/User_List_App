@@ -76,11 +76,21 @@ class UserListViewModel @Inject constructor(
         .flowOn(defaultDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserListUiState())
 
-    init { refresh() }
+    init {
+        refresh()
+    }
 
-    fun setQuery(value: String) { query.value = value }
-    fun setSort(value: UserSort) { sort.value = value }
-    fun setFavoritesOnly(value: Boolean) { favoritesOnly.value = value }
+    fun setQuery(value: String) {
+        query.value = value
+    }
+
+    fun setSort(value: UserSort) {
+        sort.value = value
+    }
+
+    fun setFavoritesOnly(value: Boolean) {
+        favoritesOnly.value = value
+    }
 
     fun toggleFavorite(user: User) {
         viewModelScope.launch {

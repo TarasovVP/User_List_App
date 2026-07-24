@@ -132,7 +132,9 @@ fun AccountScreen(
                                         R.string.change_local_photo
                                     },
                                 ),
-                                onError = { if (state.localAvatarUri != null) localImageFailed = true },
+                                onError = {
+                                    if (state.localAvatarUri != null) localImageFailed = true
+                                },
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(CircleShape)

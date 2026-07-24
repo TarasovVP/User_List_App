@@ -1,5 +1,6 @@
 package com.example.userlistapp.feature.users.details
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,8 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -56,7 +58,15 @@ fun UserDetailsRoute(onBack: () -> Unit, viewModel: UserDetailsViewModel = hiltV
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) } }
-    UserDetailsScreen(state, onBack, viewModel::toggleFavorite, viewModel::setNoteDraft, viewModel::saveNote, viewModel::deleteNote, snackbar)
+    UserDetailsScreen(
+        state,
+        onBack,
+        viewModel::toggleFavorite,
+        viewModel::setNoteDraft,
+        viewModel::saveNote,
+        viewModel::deleteNote,
+        snackbar
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,29 +80,78 @@ fun UserDetailsScreen(
     onDeleteNote: () -> Unit,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val user = state.user
     Scaffold(
-        topBar = { TopAppBar(modifier = Modifier.shadow(4.dp), expandedHeight = 56.dp, title = { Text(stringResource(R.string.user_details)) }, navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-        }) }, snackbarHost = { SnackbarHost(snackbar) },
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.shadow(4.dp),
+                expandedHeight = 56.dp,
+                title = { Text(stringResource(R.string.user_details)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    user?.let {
+                        IconButton(
+                            onClick = onFavorite,
+                            enabled = state.canToggleFavorite,
+                            modifier = Modifier.testTag("favorite_button"),
+                        ) {
+                            Icon(
+                                if (it.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
+                                stringResource(if (it.isFavorite) R.string.favorite else R.string.not_favorite),
+                                tint = if (it.isFavorite) {
+                                    FavoriteSelectedColor
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        val user = state.user
         when {
             state.isLoading -> {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
             }
+
             user == null -> {
                 Column(
-                    Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(24.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(stringResource(R.string.user_not_found), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.user_not_found),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
                         Text(stringResource(R.string.back))
                     }
                 }
             }
-            else -> DetailsContent(user, state, onFavorite, onNoteChanged, onSaveNote, onDeleteNote, Modifier.padding(padding))
+
+            else -> DetailsContent(
+                user,
+                state,
+                onNoteChanged,
+                onSaveNote,
+                onDeleteNote,
+                Modifier.padding(padding)
+            )
         }
     }
 }
@@ -101,31 +160,24 @@ fun UserDetailsScreen(
 private fun DetailsContent(
     user: User,
     state: UserDetailsUiState,
-    onFavorite: () -> Unit,
     onNoteChanged: (String) -> Unit,
     onSaveNote: () -> Unit,
     onDeleteNote: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        UserAvatar(user.imageUrl, user.fullName, Modifier.size(160.dp).clip(CircleShape))
+    Column(
+        modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        UserAvatar(user.imageUrl, user.fullName, Modifier
+            .size(160.dp)
+            .clip(CircleShape))
         Text(user.fullName, style = MaterialTheme.typography.headlineMedium)
-        IconButton(
-            onClick = onFavorite,
-            enabled = state.canToggleFavorite,
-            modifier = Modifier.testTag("favorite_button"),
-        ) {
-            Icon(
-                if (user.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
-                stringResource(if (user.isFavorite) R.string.favorite else R.string.not_favorite),
-                tint = if (user.isFavorite) {
-                    FavoriteSelectedColor
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-        }
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Detail(stringResource(R.string.username), user.username)
             Detail(stringResource(R.string.age), user.age.toString())
             Detail(stringResource(R.string.email), user.email)
@@ -141,7 +193,9 @@ private fun DetailsContent(
             onValueChange = onNoteChanged,
             label = { Text(stringResource(R.string.note)) },
             minLines = 3,
-            modifier = Modifier.fillMaxWidth().testTag("note_field"),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("note_field"),
         )
         user.noteModifiedAt?.let { modifiedAt ->
             val formattedModifiedAt = remember(modifiedAt) {
@@ -164,14 +218,34 @@ private fun DetailsContent(
                     Text(stringResource(R.string.delete_note))
                 }
             }
-            Button(onClick = onSaveNote, enabled = state.canSave, modifier = Modifier.testTag("save_note")) { Text(stringResource(R.string.save_note)) }
+            Button(
+                onClick = onSaveNote,
+                enabled = state.canSave,
+                modifier = Modifier.testTag("save_note")
+            ) { Text(stringResource(R.string.save_note)) }
         }
     }
 }
 
-@Composable private fun Detail(label: String, value: String) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value.ifBlank { stringResource(R.string.not_available) }, style = MaterialTheme.typography.bodyMedium)
+@Composable
+private fun Detail(label: String, value: String) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            value.ifBlank { stringResource(R.string.not_available) },
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }

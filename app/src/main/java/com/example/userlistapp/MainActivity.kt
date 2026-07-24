@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.People
@@ -22,7 +23,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.res.stringResource
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -75,7 +75,8 @@ private fun AppNavigation(session: SessionState) {
     var showSignIn by remember { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
     val destination = backStack?.destination
-    val topLevel = destination?.hasRoute<UsersDestination>() == true || destination?.hasRoute<AccountDestination>() == true
+    val topLevel =
+        destination?.hasRoute<UsersDestination>() == true || destination?.hasRoute<AccountDestination>() == true
 
     LaunchedEffect(session) {
         when (session) {
@@ -86,10 +87,12 @@ private fun AppNavigation(session: SessionState) {
                     launchSingleTop = true
                 }
             }
+
             SessionState.SignedOut -> nav.navigate(AccountDestination) {
                 popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
                 launchSingleTop = true
             }
+
             SessionState.Initializing -> Unit
         }
     }

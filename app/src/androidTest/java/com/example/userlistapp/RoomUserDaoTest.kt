@@ -21,10 +21,19 @@ class RoomUserDaoTest {
     private lateinit var db: UserDatabase
     private val dao get() = db.userDao()
 
-    @Before fun setup() { db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), UserDatabase::class.java).allowMainThreadQueries().build() }
-    @After fun close() = db.close()
+    @Before
+    fun setup() {
+        db = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            UserDatabase::class.java
+        ).allowMainThreadQueries().build()
+    }
 
-    @Test fun usersFavoritesAndNotesAreObservedUpdatedAndDeleted() = runTest {
+    @After
+    fun close() = db.close()
+
+    @Test
+    fun usersFavoritesAndNotesAreObservedUpdatedAndDeleted() = runTest {
         val local = RoomUserLocalDataSource(db, dao)
         local.replaceRemoteSnapshot(listOf(entity(1, "Ada")))
         assertEquals("Ada", dao.observeUsers().first().single().firstName)
@@ -44,9 +53,16 @@ class RoomUserDaoTest {
         assertNull(row.note)
     }
 
-    @Test fun refreshPreservesStaleUserWithLocalInformation() = runTest {
+    @Test
+    fun refreshPreservesStaleUserWithLocalInformation() = runTest {
         val local = RoomUserLocalDataSource(db, dao)
-        local.replaceRemoteSnapshot(listOf(entity(1, "Ada"), entity(2, "Grace"), entity(3, "Linus")))
+        local.replaceRemoteSnapshot(
+            listOf(
+                entity(1, "Ada"),
+                entity(2, "Grace"),
+                entity(3, "Linus")
+            )
+        )
         local.setFavorite(1, true)
         local.saveNote(2, "Keep")
         local.replaceRemoteSnapshot(listOf(entity(3, "Updated")))
@@ -54,9 +70,16 @@ class RoomUserDaoTest {
         assertEquals("Updated", dao.observeUser(3).first()?.firstName)
     }
 
-    @Test fun emptyRefreshRemovesRemoteOnlyUsersAndPreservesLocalInformation() = runTest {
+    @Test
+    fun emptyRefreshRemovesRemoteOnlyUsersAndPreservesLocalInformation() = runTest {
         val local = RoomUserLocalDataSource(db, dao)
-        local.replaceRemoteSnapshot(listOf(entity(1, "Favorite"), entity(2, "Noted"), entity(3, "Remote only")))
+        local.replaceRemoteSnapshot(
+            listOf(
+                entity(1, "Favorite"),
+                entity(2, "Noted"),
+                entity(3, "Remote only")
+            )
+        )
         local.setFavorite(1, true)
         local.saveNote(2, "Keep")
 
@@ -68,7 +91,8 @@ class RoomUserDaoTest {
         assertNull(dao.observeUser(3).first())
     }
 
-    @Test fun largeSnapshotRefreshDoesNotDependOnSQLiteHostParameterLimit() = runTest {
+    @Test
+    fun largeSnapshotRefreshDoesNotDependOnSQLiteHostParameterLimit() = runTest {
         val local = RoomUserLocalDataSource(db, dao)
         local.replaceRemoteSnapshot(List(1_200) { index -> entity(index + 1, "User $index") })
         assertEquals(1_200, dao.observeUsers().first().size)
@@ -78,4 +102,22 @@ class RoomUserDaoTest {
     }
 }
 
-private fun entity(id: Int, name: String) = UserEntity(id, name, "User", 30, "e$id", "p", "u$id", "", "user", "Company", "Dept", "Title", "Street", "City", "State", "Country", 1)
+private fun entity(id: Int, name: String) = UserEntity(
+    id,
+    name,
+    "User",
+    30,
+    "e$id",
+    "p",
+    "u$id",
+    "",
+    "user",
+    "Company",
+    "Dept",
+    "Title",
+    "Street",
+    "City",
+    "State",
+    "Country",
+    1
+)

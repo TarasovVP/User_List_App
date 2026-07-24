@@ -21,23 +21,38 @@ import org.junit.Test
 import java.io.IOException
 
 class UserRepositoryImplTest {
-    @Test fun `refresh maps and persists complete snapshot`() = runTest {
+    @Test
+    fun `refresh maps and persists complete snapshot`() = runTest {
         val local = FakeLocal()
-        val repo = UserRepositoryImpl(FakeRemote(listOf(UserDto(id = 5, firstName = "Ada", company = CompanyDto(name = "Math")))), local, Dispatchers.Unconfined)
+        val repo = UserRepositoryImpl(
+            FakeRemote(
+                listOf(
+                    UserDto(
+                        id = 5,
+                        firstName = "Ada",
+                        company = CompanyDto(name = "Math")
+                    )
+                )
+            ), local, Dispatchers.Unconfined
+        )
         assertTrue(repo.refreshUsers() is AppResult.Success)
         assertEquals(5, local.saved.single().id)
         assertEquals("Math", local.saved.single().companyName)
     }
 
-    @Test fun `network failure preserves cached content and maps error`() = runTest {
+    @Test
+    fun `network failure preserves cached content and maps error`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
-        val repo = UserRepositoryImpl(object : UserRemoteDataSource { override suspend fun getUsers(): List<UserDto> = throw IOException() }, local, Dispatchers.Unconfined)
+        val repo = UserRepositoryImpl(object : UserRemoteDataSource {
+            override suspend fun getUsers(): List<UserDto> = throw IOException()
+        }, local, Dispatchers.Unconfined)
         val result = repo.refreshUsers()
         assertEquals(AppResult.Failure(AppError.Network), result)
         assertEquals(9, local.saved.single().id)
     }
 
-    @Test fun `refresh preserves favorite and note metadata owned by local storage`() = runTest {
+    @Test
+    fun `refresh preserves favorite and note metadata owned by local storage`() = runTest {
         val local = FakeLocal().apply {
             saved = listOf(entity(1))
             favoriteIds += 1
@@ -53,7 +68,8 @@ class UserRepositoryImplTest {
         assertEquals(mapOf(1 to "Keep this"), local.notes)
     }
 
-    @Test fun `large snapshot is accepted without SQLite parameter assumptions`() = runTest {
+    @Test
+    fun `large snapshot is accepted without SQLite parameter assumptions`() = runTest {
         val local = FakeLocal()
         val remote = FakeRemote(List(1_000) { index -> UserDto(id = index + 1) })
         val result = UserRepositoryImpl(remote, local, Dispatchers.Unconfined).refreshUsers()
@@ -62,7 +78,8 @@ class UserRepositoryImplTest {
         assertEquals(1_000, local.saved.size)
     }
 
-    @Test fun `duplicate remote IDs are rejected without changing local cache`() = runTest {
+    @Test
+    fun `duplicate remote IDs are rejected without changing local cache`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
         val remote = FakeRemote(
             listOf(
@@ -77,7 +94,8 @@ class UserRepositoryImplTest {
         assertEquals(listOf(9), local.saved.map { it.id })
     }
 
-    @Test fun `empty remote snapshot is persisted as a valid result`() = runTest {
+    @Test
+    fun `empty remote snapshot is persisted as a valid result`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
 
         val result = UserRepositoryImpl(
@@ -92,10 +110,13 @@ class UserRepositoryImplTest {
 
     @Test(expected = CancellationException::class)
     fun `refresh never hides cancellation`() = runTest {
-        UserRepositoryImpl(object : UserRemoteDataSource { override suspend fun getUsers(): List<UserDto> = throw CancellationException() }, FakeLocal(), Dispatchers.Unconfined).refreshUsers()
+        UserRepositoryImpl(object : UserRemoteDataSource {
+            override suspend fun getUsers(): List<UserDto> = throw CancellationException()
+        }, FakeLocal(), Dispatchers.Unconfined).refreshUsers()
     }
 
-    @Test fun `note save and delete reach local storage`() = runTest {
+    @Test
+    fun `note save and delete reach local storage`() = runTest {
         val local = FakeLocal()
         val repo = UserRepositoryImpl(FakeRemote(emptyList()), local, Dispatchers.Unconfined)
         assertTrue(repo.saveNote(4, "remember") is AppResult.Success)
@@ -105,7 +126,10 @@ class UserRepositoryImplTest {
     }
 }
 
-private class FakeRemote(private val result: List<UserDto>) : UserRemoteDataSource { override suspend fun getUsers() = result }
+private class FakeRemote(private val result: List<UserDto>) : UserRemoteDataSource {
+    override suspend fun getUsers() = result
+}
+
 private class FakeLocal : UserLocalDataSource {
     var saved: List<UserEntity> = emptyList()
     var note: String? = null
@@ -113,20 +137,44 @@ private class FakeLocal : UserLocalDataSource {
     val notes = mutableMapOf<Int, String>()
     private val rows = MutableStateFlow<List<UserWithLocal>>(emptyList())
     override fun observeUsers(): Flow<List<UserWithLocal>> = rows
-    override fun observeUser(userId: Int): Flow<UserWithLocal?> = rows.map { it.firstOrNull { row -> row.id == userId } }
+    override fun observeUser(userId: Int): Flow<UserWithLocal?> =
+        rows.map { it.firstOrNull { row -> row.id == userId } }
+
     override suspend fun replaceRemoteSnapshot(users: List<UserEntity>) {
         saved = users
     }
+
     override suspend fun setFavorite(userId: Int, favorite: Boolean) {
         if (favorite) favoriteIds += userId else favoriteIds -= userId
     }
+
     override suspend fun saveNote(userId: Int, note: String) {
         this.note = note
         notes[userId] = note
     }
+
     override suspend fun deleteNote(userId: Int) {
         note = null
         notes.remove(userId)
     }
 }
-private fun entity(id: Int) = UserEntity(id, "A", "B", 1, "e", "p", "u", "", "r", "c", "d", "t", "s", "city", "state", "country", 0)
+
+private fun entity(id: Int) = UserEntity(
+    id,
+    "A",
+    "B",
+    1,
+    "e",
+    "p",
+    "u",
+    "",
+    "r",
+    "c",
+    "d",
+    "t",
+    "s",
+    "city",
+    "state",
+    "country",
+    0
+)

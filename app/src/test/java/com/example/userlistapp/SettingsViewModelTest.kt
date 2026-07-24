@@ -7,8 +7,8 @@ import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.feature.settings.SettingsViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -25,9 +25,11 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
-    @get:Rule val main = MainDispatcherRule()
+    @get:Rule
+    val main = MainDispatcherRule()
 
-    @Test fun `theme and background sync changes are persisted`() = runTest(main.dispatcher) {
+    @Test
+    fun `theme and background sync changes are persisted`() = runTest(main.dispatcher) {
         val repository = RecordingSettingsRepository()
         val scheduler = RecordingScheduler()
         val viewModel = SettingsViewModel(repository, scheduler)
@@ -45,13 +47,15 @@ class SettingsViewModelTest {
         assertEquals(emptyList<Boolean>(), scheduler.enabledValues)
     }
 
-    @Test fun `ui state combines persisted settings with scheduler state`() = runTest(main.dispatcher) {
+    @Test
+    fun `ui state combines persisted settings with scheduler state`() = runTest(main.dispatcher) {
         val repository = RecordingSettingsRepository()
         val scheduler = RecordingScheduler()
         val viewModel = SettingsViewModel(repository, scheduler)
         collectState(viewModel)
 
-        repository.state.value = AppSettings(ThemeMode.LIGHT, backgroundSyncEnabled = false, lastSuccessfulSync = 42)
+        repository.state.value =
+            AppSettings(ThemeMode.LIGHT, backgroundSyncEnabled = false, lastSuccessfulSync = 42)
         scheduler.state.value = SyncState.RUNNING
         advanceUntilIdle()
 
@@ -59,37 +63,41 @@ class SettingsViewModelTest {
         assertEquals(SyncState.RUNNING, viewModel.uiState.value.syncState)
     }
 
-    @Test fun `background sync switch updates optimistically before persistence completes`() = runTest(main.dispatcher) {
-        val repository = DelayedSettingsRepository()
-        val viewModel = SettingsViewModel(repository, RecordingScheduler())
-        collectState(viewModel)
-        advanceUntilIdle()
-
-        viewModel.setBackgroundSync(false)
-        runCurrent()
-
-        assertEquals(false, viewModel.uiState.value.settings.backgroundSyncEnabled)
-        assertEquals(true, repository.state.value.backgroundSyncEnabled)
-
-        repository.allowWrite.complete(Unit)
-        advanceUntilIdle()
-        assertEquals(false, repository.state.value.backgroundSyncEnabled)
-        assertEquals(false, viewModel.uiState.value.settings.backgroundSyncEnabled)
-    }
-
-    @Test fun `failed persistence does not update scheduler and emits error`() = runTest(main.dispatcher) {
-        val scheduler = RecordingScheduler()
-        val viewModel = SettingsViewModel(FailingSettingsRepository(), scheduler)
-
-        viewModel.events.test {
-            viewModel.setBackgroundSync(false)
+    @Test
+    fun `background sync switch updates optimistically before persistence completes`() =
+        runTest(main.dispatcher) {
+            val repository = DelayedSettingsRepository()
+            val viewModel = SettingsViewModel(repository, RecordingScheduler())
+            collectState(viewModel)
             advanceUntilIdle()
 
-            assertEquals(R.string.error_storage, awaitItem().resourceId)
-            assertEquals(0, scheduler.setEnabledCalls)
-            cancelAndIgnoreRemainingEvents()
+            viewModel.setBackgroundSync(false)
+            runCurrent()
+
+            assertEquals(false, viewModel.uiState.value.settings.backgroundSyncEnabled)
+            assertEquals(true, repository.state.value.backgroundSyncEnabled)
+
+            repository.allowWrite.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(false, repository.state.value.backgroundSyncEnabled)
+            assertEquals(false, viewModel.uiState.value.settings.backgroundSyncEnabled)
         }
-    }
+
+    @Test
+    fun `failed persistence does not update scheduler and emits error`() =
+        runTest(main.dispatcher) {
+            val scheduler = RecordingScheduler()
+            val viewModel = SettingsViewModel(FailingSettingsRepository(), scheduler)
+
+            viewModel.events.test {
+                viewModel.setBackgroundSync(false)
+                advanceUntilIdle()
+
+                assertEquals(R.string.error_storage, awaitItem().resourceId)
+                assertEquals(0, scheduler.setEnabledCalls)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     private fun TestScope.collectState(viewModel: SettingsViewModel) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
@@ -102,9 +110,11 @@ private class RecordingSettingsRepository : SettingsRepository {
     override suspend fun setTheme(mode: ThemeMode) {
         state.value = state.value.copy(themeMode = mode)
     }
+
     override suspend fun setBackgroundSync(enabled: Boolean) {
         state.value = state.value.copy(backgroundSyncEnabled = enabled)
     }
+
     override suspend fun setLastSuccessfulSync(timestamp: Long) {
         state.value = state.value.copy(lastSuccessfulSync = timestamp)
     }
@@ -126,6 +136,7 @@ private class DelayedSettingsRepository : SettingsRepository {
         allowWrite.await()
         state.value = state.value.copy(backgroundSyncEnabled = enabled)
     }
+
     override suspend fun setLastSuccessfulSync(timestamp: Long) = Unit
 }
 

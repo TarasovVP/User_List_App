@@ -29,13 +29,22 @@ class SettingsRepositoryImpl(private val dataStore: DataStore<Preferences>) : Se
         .catch { if (it is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw it }
         .map { preferences ->
             AppSettings(
-                themeMode = preferences[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+                themeMode = preferences[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
+                    ?: ThemeMode.SYSTEM,
                 backgroundSyncEnabled = preferences[Keys.backgroundSync] ?: true,
                 lastSuccessfulSync = preferences[Keys.lastSync],
             )
         }
 
-    override suspend fun setTheme(mode: ThemeMode) { dataStore.edit { it[Keys.theme] = mode.name } }
-    override suspend fun setBackgroundSync(enabled: Boolean) { dataStore.edit { it[Keys.backgroundSync] = enabled } }
-    override suspend fun setLastSuccessfulSync(timestamp: Long) { dataStore.edit { it[Keys.lastSync] = timestamp } }
+    override suspend fun setTheme(mode: ThemeMode) {
+        dataStore.edit { it[Keys.theme] = mode.name }
+    }
+
+    override suspend fun setBackgroundSync(enabled: Boolean) {
+        dataStore.edit { it[Keys.backgroundSync] = enabled }
+    }
+
+    override suspend fun setLastSuccessfulSync(timestamp: Long) {
+        dataStore.edit { it[Keys.lastSync] = timestamp }
+    }
 }

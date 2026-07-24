@@ -21,26 +21,38 @@ import java.io.File
 import java.io.IOException
 
 class AuthSessionRepositoryTest {
-    @Test fun `missing id restores signed out and successful login persists only session id`() = runTest {
+    @Test
+    fun `missing id restores signed out and successful login persists only session id`() = runTest {
         val api = TestAuthApi()
         val repository = repository(api)
         assertEquals(SessionState.SignedOut, repository.sessionState.first())
 
-        assertEquals("emilys", (repository.signIn("emilys", "emilyspass") as AppResult.Success).value.username)
+        assertEquals(
+            "emilys",
+            (repository.signIn("emilys", "emilyspass") as AppResult.Success).value.username
+        )
         assertEquals(SessionState.SignedIn(1), repository.sessionState.first())
     }
 
-    @Test fun `network and invalid credentials map to typed authentication errors`() = runTest {
+    @Test
+    fun `network and invalid credentials map to typed authentication errors`() = runTest {
         val api = TestAuthApi(loginFailure = IOException("offline"))
-        assertEquals(AppResult.Failure(AppError.Network), repository(api).signIn("user", "password"))
+        assertEquals(
+            AppResult.Failure(AppError.Network),
+            repository(api).signIn("user", "password")
+        )
 
         api.loginFailure = HttpException(
             Response.error<AccountDto>(401, "{}".toResponseBody("application/json".toMediaType())),
         )
-        assertEquals(AppResult.Failure(AppError.InvalidCredentials), repository(api).signIn("user", "password"))
+        assertEquals(
+            AppResult.Failure(AppError.InvalidCredentials),
+            repository(api).signIn("user", "password")
+        )
     }
 
-    @Test fun `sign out clears user id and local avatar`() = runTest {
+    @Test
+    fun `sign out clears user id and local avatar`() = runTest {
         val repository = repository(TestAuthApi())
         repository.signIn("emilys", "emilyspass")
         repository.setLocalAvatar("content://avatar")
@@ -50,7 +62,8 @@ class AuthSessionRepositoryTest {
         assertNull(repository.localAvatarUri.first())
     }
 
-    @Test fun `invalid stored user clears simulated session`() = runTest {
+    @Test
+    fun `invalid stored user clears simulated session`() = runTest {
         val api = TestAuthApi()
         val repository = repository(api)
         repository.signIn("emilys", "emilyspass")

@@ -40,7 +40,15 @@ class AuthViewModel @Inject constructor(
         repository.localAvatarUri,
         operation,
     ) { session, avatar, op ->
-        AuthUiState(session, op.account, avatar, op.signingIn, op.loadingAccount, op.loginError, op.accountError)
+        AuthUiState(
+            session,
+            op.account,
+            avatar,
+            op.signingIn,
+            op.loadingAccount,
+            op.loginError,
+            op.accountError
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AuthUiState())
 
     init {
@@ -56,15 +64,19 @@ class AuthViewModel @Inject constructor(
     fun signIn(username: String, password: String) {
         if (!signingIn.compareAndSet(false, true)) return
         if (username.isBlank() || password.isBlank()) {
-            operation.value = operation.value.copy(loginError = com.example.userlistapp.core.common.AppError.InvalidCredentials.toUiText())
+            operation.value =
+                operation.value.copy(loginError = com.example.userlistapp.core.common.AppError.InvalidCredentials.toUiText())
             signingIn.set(false)
             return
         }
         viewModelScope.launch {
             operation.value = operation.value.copy(signingIn = true, loginError = null)
             when (val result = repository.signIn(username, password)) {
-                is AppResult.Success -> operation.value = operation.value.copy(account = result.value, signingIn = false)
-                is AppResult.Failure -> operation.value = operation.value.copy(signingIn = false, loginError = result.error.toUiText())
+                is AppResult.Success -> operation.value =
+                    operation.value.copy(account = result.value, signingIn = false)
+
+                is AppResult.Failure -> operation.value =
+                    operation.value.copy(signingIn = false, loginError = result.error.toUiText())
             }
             signingIn.set(false)
         }
@@ -95,8 +107,11 @@ class AuthViewModel @Inject constructor(
     private suspend fun loadAccount(userId: Int) {
         operation.value = operation.value.copy(loadingAccount = true, accountError = null)
         when (val result = repository.loadAccount(userId)) {
-            is AppResult.Success -> operation.value = operation.value.copy(account = result.value, loadingAccount = false)
-            is AppResult.Failure -> operation.value = operation.value.copy(loadingAccount = false, accountError = result.error.toUiText())
+            is AppResult.Success -> operation.value =
+                operation.value.copy(account = result.value, loadingAccount = false)
+
+            is AppResult.Failure -> operation.value =
+                operation.value.copy(loadingAccount = false, accountError = result.error.toUiText())
         }
     }
 
