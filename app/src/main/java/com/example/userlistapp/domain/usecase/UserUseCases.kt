@@ -3,6 +3,9 @@ package com.example.userlistapp.domain.usecase
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.repository.UserRepository
+import com.example.userlistapp.domain.repository.AuthSessionRepository
+import com.example.userlistapp.domain.model.SessionState
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 // Use cases are the deliberate application boundary between feature code and repositories.
@@ -10,8 +13,13 @@ import javax.inject.Inject
 class ObserveUsersUseCase @Inject constructor(private val repository: UserRepository) {
     operator fun invoke() = repository.observeUsers()
 }
-class RefreshUsersUseCase @Inject constructor(private val repository: UserRepository) {
-    suspend operator fun invoke() = repository.refreshUsers()
+class RefreshUsersUseCase @Inject constructor(
+    private val repository: UserRepository,
+    private val sessionRepository: AuthSessionRepository,
+) {
+    suspend operator fun invoke(): AppResult<Unit> =
+        if (sessionRepository.sessionState.first() is SessionState.SignedIn) repository.refreshUsers()
+        else AppResult.Failure(AppError.AuthenticationRequired)
 }
 class ObserveUserDetailsUseCase @Inject constructor(private val repository: UserRepository) {
     operator fun invoke(userId: Int) = repository.observeUser(userId)

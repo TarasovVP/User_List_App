@@ -37,3 +37,20 @@ data class AppSettings(
 enum class UserSort { NAME_ASCENDING, NAME_DESCENDING }
 
 enum class SyncState { IDLE, RUNNING, SUCCEEDED, FAILED }
+
+sealed interface SessionState {
+    data object Initializing : SessionState
+    data object SignedOut : SessionState
+    data class SignedIn(val userId: Int) : SessionState
+}
+
+data class Account(
+    val id: Int,
+    val username: String,
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val remoteImageUrl: String,
+) {
+    val fullName: String get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
+}

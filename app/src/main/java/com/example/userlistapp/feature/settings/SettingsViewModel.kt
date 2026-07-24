@@ -39,7 +39,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setBackgroundSync(enabled: Boolean) = persistSetting(
         update = { repository.setBackgroundSync(enabled) },
-        onSuccess = { scheduler.setEnabled(enabled) },
     )
 
     private fun persistSetting(

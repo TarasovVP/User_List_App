@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -25,6 +26,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.Account
+import com.example.userlistapp.domain.model.SessionState
+import com.example.userlistapp.feature.account.AccountScreen
+import com.example.userlistapp.feature.account.AuthUiState
+import com.example.userlistapp.feature.account.SignInSheet
 import com.example.userlistapp.feature.users.details.UserDetailsScreen
 import com.example.userlistapp.feature.users.details.UserDetailsUiState
 import com.example.userlistapp.feature.users.list.UserListScreen
@@ -133,6 +139,52 @@ class UserScreensTest {
         compose.onNodeWithText(context.getString(R.string.user_not_found)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.back)).performClick()
         assertTrue(wentBack)
+    }
+
+    @Test fun guestAccountOpensSignIn() {
+        var opened = false
+        compose.setContent { UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
+            AccountScreen(AuthUiState(session = SessionState.SignedOut), { opened = true }, {}, {}, {})
+        } }
+        compose.onNodeWithText("Guest").assertIsDisplayed()
+        compose.onNodeWithTag("sign_in_open").performClick()
+        assertTrue(opened)
+    }
+
+    @Test fun signInSheetAcceptsCredentials() {
+        var submitted: Pair<String, String>? = null
+        compose.setContent { UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
+            SignInSheet(AuthUiState(session = SessionState.SignedOut), {}, { username, password -> submitted = username to password })
+        } }
+        compose.onNodeWithTag("login_submit").assertIsNotEnabled()
+        compose.onNodeWithTag("login_username").performTextInput("emilys")
+        compose.onNodeWithTag("login_password").performTextInput("emilyspass")
+        compose.onNodeWithTag("login_submit").assertIsEnabled().performClick()
+        assertEquals("emilys" to "emilyspass", submitted)
+    }
+
+    @Test fun accountContentExposesPhotoRemovalAndSignOutActions() {
+        var removed = false
+        var signedOut = false
+        compose.setContent { UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
+            AccountScreen(
+                state = AuthUiState(
+                    session = SessionState.SignedIn(1),
+                    account = Account(1, "emilys", "Emily", "Johnson", "emily@example.com", ""),
+                    localAvatarUri = "content://local/avatar",
+                ),
+                onOpenSignIn = {},
+                onRetry = {},
+                onSignOut = { signedOut = true },
+                onAvatar = { if (it == null) removed = true },
+            )
+        } }
+
+        compose.onNodeWithText("Emily Johnson").assertIsDisplayed()
+        compose.onNodeWithText("Remove local photo").performClick()
+        compose.onNodeWithText("Sign out").performClick()
+        assertTrue(removed)
+        assertTrue(signedOut)
     }
 }
 

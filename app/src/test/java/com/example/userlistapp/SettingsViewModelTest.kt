@@ -39,7 +39,8 @@ class SettingsViewModelTest {
         assertEquals(ThemeMode.DARK, repository.state.value.themeMode)
         assertEquals(false, repository.state.value.backgroundSyncEnabled)
         assertEquals(repository.state.value, viewModel.uiState.value.settings)
-        assertEquals(listOf(false), scheduler.enabledValues)
+        // Scheduling is centralized in SyncCoordinator and observes the persisted value.
+        assertEquals(emptyList<Boolean>(), scheduler.enabledValues)
     }
 
     @Test fun `ui state combines persisted settings with scheduler state`() = runTest(main.dispatcher) {

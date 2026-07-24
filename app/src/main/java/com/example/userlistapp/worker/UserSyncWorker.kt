@@ -24,7 +24,8 @@ class UserSyncWorker @AssistedInject constructor(
             Result.success()
         }
         is AppResult.Failure ->
-            if (shouldRetry(result.error, runAttemptCount)) Result.retry() else Result.failure()
+            if (result.error == AppError.AuthenticationRequired) Result.success()
+            else if (shouldRetry(result.error, runAttemptCount)) Result.retry() else Result.failure()
     }
 
     companion object {
@@ -41,5 +42,6 @@ internal fun shouldRetry(error: AppError, runAttemptCount: Int): Boolean {
         AppError.InvalidData, AppError.Storage, AppError.Unknown -> false
         // SaveUserNoteUseCase is the only producer of InvalidNote; refresh cannot return it.
         AppError.InvalidNote -> false
+        AppError.AuthenticationRequired, AppError.InvalidCredentials -> false
     }
 }

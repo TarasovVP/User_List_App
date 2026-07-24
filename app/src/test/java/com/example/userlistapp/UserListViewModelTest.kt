@@ -6,6 +6,9 @@ import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.domain.repository.UserRepository
+import com.example.userlistapp.domain.repository.AuthSessionRepository
+import com.example.userlistapp.domain.model.Account
+import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.feature.users.list.UserListViewModel
@@ -29,6 +32,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserListViewModelTest {
@@ -149,15 +156,42 @@ class UserListViewModelTest {
         }
     }
 
+    @Test fun `mockk repository flow is rendered and initial refresh is invoked`() = runTest(main.dispatcher) {
+        val repository = mockk<UserRepository>()
+        every { repository.observeUsers() } returns MutableStateFlow(listOf(sampleUser()))
+        coEvery { repository.refreshUsers() } returns AppResult.Success(Unit)
+        val vm = viewModel(repository)
+        collectState(vm)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(1), vm.uiState.value.users.map(User::id))
+        assertFalse(vm.uiState.value.isInitialLoading)
+        coVerify(exactly = 1) { repository.refreshUsers() }
+    }
+
     private fun viewModel(repo: UserRepository) = UserListViewModel(
         ObserveUsersUseCase(repo),
-        RefreshUsersUseCase(repo),
+        RefreshUsersUseCase(repo, SignedInSessionRepository),
         main.dispatcher,
     )
 
     private fun TestScope.collectState(viewModel: UserListViewModel) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
     }
+}
+
+private object SignedInSessionRepository : AuthSessionRepository {
+    override val sessionState: Flow<SessionState> = MutableStateFlow(SessionState.SignedIn(1))
+    override val localAvatarUri: Flow<String?> = MutableStateFlow(null)
+    override suspend fun signIn(username: String, password: String) = AppResult.Success(
+        Account(1, username, "Test", "User", "test@example.com", ""),
+    )
+    override suspend fun loadAccount(userId: Int) = AppResult.Success(
+        Account(userId, "test", "Test", "User", "test@example.com", ""),
+    )
+    override suspend fun signOut() = AppResult.Success(Unit)
+    override suspend fun setLocalAvatar(uri: String?) = AppResult.Success(Unit)
 }
 
 private class DelayedCacheRepository : UserRepository {

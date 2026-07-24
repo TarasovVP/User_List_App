@@ -5,6 +5,8 @@ sealed interface AppError {
     data class Http(val code: Int) : AppError
     data object InvalidData : AppError
     data object InvalidNote : AppError
+    data object AuthenticationRequired : AppError
+    data object InvalidCredentials : AppError
     data object Storage : AppError
     data object Unknown : AppError
 }

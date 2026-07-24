@@ -5,6 +5,8 @@ import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.Account
+import com.example.userlistapp.domain.model.SessionState
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
@@ -26,4 +28,17 @@ interface SettingsRepository {
 interface SyncScheduler {
     fun observeState(): Flow<SyncState>
     fun setEnabled(enabled: Boolean)
+}
+
+/**
+ * A deliberately simulated session: only a DummyJSON user id and an optional local
+ * avatar URI are persisted. It is not a production authentication/token store.
+ */
+interface AuthSessionRepository {
+    val sessionState: Flow<SessionState>
+    val localAvatarUri: Flow<String?>
+    suspend fun signIn(username: String, password: String): AppResult<Account>
+    suspend fun loadAccount(userId: Int): AppResult<Account>
+    suspend fun signOut(): AppResult<Unit>
+    suspend fun setLocalAvatar(uri: String?): AppResult<Unit>
 }

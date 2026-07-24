@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 data object UsersDestination
 
 @Serializable
+data object AccountDestination
+
+@Serializable
 data class UserDetailsDestination(val userId: Int)
 
 @Serializable

@@ -50,4 +50,17 @@
     <string name="department">Department</string>
     <string name="job_title">Job title</string>
     <string name="address">Address</string>
+    <string name="users_nav">Users</string>
+    <string name="account_title">Account</string>
+    <string name="guest_title">Guest</string>
+    <string name="guest_explanation">Sign in to browse the protected user directory and synchronize users.</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_out">Sign out</string>
+    <string name="password">Password</string>
+    <string name="cancel">Cancel</string>
+    <string name="test_credentials_hint">Test account: emilys / emilyspass</string>
+    <string name="authentication_required">Sign in is required to view users.</string>
+    <string name="error_invalid_credentials">The username or password is invalid.</string>
+    <string name="change_photo">Change account photo</string>
+    <string name="remove_local_photo">Remove local photo</string>
 </resources>
