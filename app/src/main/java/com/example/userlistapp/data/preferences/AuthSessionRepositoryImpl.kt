@@ -53,11 +53,13 @@ class AuthSessionRepositoryImpl(
         }
         .map { it[Keys.localAccountAvatarUri] }
 
-    override suspend fun signIn(username: String, password: String): AppResult<Account> {
-        if (username.isBlank() || password.isBlank()) return AppResult.Failure(AppError.InvalidCredentials)
-        return try {
+    override suspend fun signIn(
+        username: String,
+        password: String,
+    ): AppResult<Account> = withContext(ioDispatcher) {
+        try {
             val account = api.login(LoginRequestDto(username.trim(), password)).toDomain()
-            if (account.id <= 0) return AppResult.Failure(AppError.InvalidData)
+            if (account.id <= 0) return@withContext AppResult.Failure(AppError.InvalidData)
             dataStore.edit { it[Keys.authenticatedUserId] = account.id }
             AppResult.Success(account)
         } catch (error: CancellationException) {
@@ -75,20 +77,28 @@ class AuthSessionRepositoryImpl(
         }
     }
 
-    override suspend fun loadAccount(userId: Int): AppResult<Account> = try {
-        val account = api.getAccount(userId).toDomain()
-        if (account.id <= 0) AppResult.Failure(AppError.InvalidData) else AppResult.Success(account)
-    } catch (error: CancellationException) {
-        throw error
-    } catch (error: HttpException) {
-        if (error.code() == 404) {
-            signOut()
-            AppResult.Failure(AppError.AuthenticationRequired)
-        } else AppResult.Failure(AppError.Http(error.code()))
-    } catch (error: IOException) {
-        AppResult.Failure(AppError.Network)
-    } catch (_: Exception) {
-        AppResult.Failure(AppError.Unknown)
+    override suspend fun loadAccount(userId: Int): AppResult<Account> =
+        withContext(ioDispatcher) {
+            try {
+                val account = api.getAccount(userId).toDomain()
+                if (account.id <= 0) {
+                    AppResult.Failure(AppError.InvalidData)
+                } else {
+                    AppResult.Success(account)
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: HttpException) {
+                if (error.code() == 404) {
+                    AppResult.Failure(AppError.AuthenticationRequired)
+                } else {
+                    AppResult.Failure(AppError.Http(error.code()))
+                }
+            } catch (error: IOException) {
+                AppResult.Failure(AppError.Network)
+            } catch (_: Exception) {
+                AppResult.Failure(AppError.Unknown)
+            }
     }
 
     override suspend fun signOut(): AppResult<Unit> = withContext(ioDispatcher) {
@@ -110,9 +120,14 @@ class AuthSessionRepositoryImpl(
 
     override suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit> =
         withContext(ioDispatcher) {
-            var importedUri: String? = null
+            val importedUri = try {
+                avatarStorage.import(sourceUri)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                return@withContext AppResult.Failure(AppError.Storage)
+            }
             try {
-                importedUri = avatarStorage.import(sourceUri)
                 var previousUri: String? = null
                 dataStore.edit { preferences ->
                     previousUri = preferences[Keys.localAccountAvatarUri]
@@ -121,10 +136,10 @@ class AuthSessionRepositoryImpl(
                 previousUri?.let(avatarStorage::delete)
                 AppResult.Success(Unit)
             } catch (error: CancellationException) {
-                importedUri?.let(avatarStorage::delete)
+                avatarStorage.delete(importedUri)
                 throw error
             } catch (_: Exception) {
-                importedUri?.let(avatarStorage::delete)
+                avatarStorage.delete(importedUri)
                 AppResult.Failure(AppError.Storage)
             }
         }

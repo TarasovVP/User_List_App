@@ -5,8 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -21,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -72,7 +71,7 @@ private fun AppNavigation(session: SessionState) {
     val nav = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
     val auth by authViewModel.uiState.collectAsStateWithLifecycle()
-    var showSignIn by remember { mutableStateOf(false) }
+    var showSignIn by rememberSaveable { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
     val destination = backStack?.destination
     val topLevel =
@@ -82,15 +81,21 @@ private fun AppNavigation(session: SessionState) {
         when (session) {
             is SessionState.SignedIn -> {
                 showSignIn = false
-                nav.navigate(UsersDestination) {
-                    popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
-                    launchSingleTop = true
+                if (nav.currentDestination?.hasRoute<UsersDestination>() != true) {
+                    nav.navigate(UsersDestination) {
+                        popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             }
 
-            SessionState.SignedOut -> nav.navigate(AccountDestination) {
-                popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
-                launchSingleTop = true
+            SessionState.SignedOut -> {
+                if (nav.currentDestination?.hasRoute<AccountDestination>() != true) {
+                    nav.navigate(AccountDestination) {
+                        popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             }
 
             SessionState.Initializing -> Unit
@@ -119,10 +124,6 @@ private fun AppNavigation(session: SessionState) {
             navController = nav,
             startDestination = if (session is SessionState.SignedIn) UsersDestination else AccountDestination,
             modifier = Modifier.padding(padding),
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None },
         ) {
             composable<UsersDestination> {
                 if (session is SessionState.SignedIn) {

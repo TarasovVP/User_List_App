@@ -1,12 +1,13 @@
 package com.example.userlistapp
 
 import com.example.userlistapp.domain.model.UserSort
-import com.example.userlistapp.feature.users.list.filterAndSortUsers
+import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UserListFilteringTest {
+    private val filterAndSortUsers = FilterAndSortUsersUseCase()
     private val ada = sampleUser(id = 1, firstName = "Ada", lastName = "Lovelace", favorite = true)
     private val grace = sampleUser(id = 2, firstName = "Grace", lastName = "Hopper")
 

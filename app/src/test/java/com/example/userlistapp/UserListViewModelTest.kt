@@ -11,6 +11,7 @@ import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
+import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
 import com.example.userlistapp.feature.users.list.UserListViewModel
 import io.mockk.coEvery
@@ -195,6 +196,7 @@ class UserListViewModelTest {
         ObserveUsersUseCase(repo),
         RefreshUsersUseCase(repo, SignedInSessionRepository),
         ToggleFavoriteUseCase(repo),
+        FilterAndSortUsersUseCase(),
         main.dispatcher,
     )
 

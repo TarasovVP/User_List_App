@@ -39,7 +39,7 @@ class AuthAndProtectionTest {
     fun `blank credentials do not invoke login and expose validation error`() =
         runTest(main.dispatcher) {
             val repository = FakeAuthRepository()
-            val viewModel = AuthViewModel(authUseCases(repository))
+            val viewModel = authViewModel(repository)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
             runCurrent()
 
@@ -57,7 +57,7 @@ class AuthAndProtectionTest {
     fun `successful login transitions to signed in and account content`() =
         runTest(main.dispatcher) {
             val repository = FakeAuthRepository()
-            val viewModel = AuthViewModel(authUseCases(repository))
+            val viewModel = authViewModel(repository)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
 
             viewModel.signIn("emilys", "emilyspass")
@@ -72,7 +72,7 @@ class AuthAndProtectionTest {
     fun `failed login remains signed out and can retry`() = runTest(main.dispatcher) {
         val repository =
             FakeAuthRepository(loginResult = AppResult.Failure(AppError.InvalidCredentials))
-        val viewModel = AuthViewModel(authUseCases(repository))
+        val viewModel = authViewModel(repository)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
 
         viewModel.signIn("bad", "bad")
@@ -90,7 +90,7 @@ class AuthAndProtectionTest {
     fun `sign out clears session and local avatar`() = runTest(main.dispatcher) {
         val repository = FakeAuthRepository(SessionState.SignedIn(1))
         repository.avatar.value = "content://avatar"
-        val viewModel = AuthViewModel(authUseCases(repository))
+        val viewModel = authViewModel(repository)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
         advanceUntilIdle()
 
@@ -105,7 +105,7 @@ class AuthAndProtectionTest {
     fun `sign out cancels in-flight sign in and still signs out`() = runTest(main.dispatcher) {
         val repository = FakeAuthRepository()
         repository.suspendLogin = true
-        val viewModel = AuthViewModel(authUseCases(repository))
+        val viewModel = authViewModel(repository)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
 
         viewModel.signIn("emilys", "emilyspass")

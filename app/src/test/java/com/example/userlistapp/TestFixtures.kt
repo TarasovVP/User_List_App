@@ -2,7 +2,6 @@ package com.example.userlistapp
 
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.repository.AuthSessionRepository
-import com.example.userlistapp.domain.usecase.AuthUseCases
 import com.example.userlistapp.domain.usecase.ImportLocalAvatarUseCase
 import com.example.userlistapp.domain.usecase.LoadAccountUseCase
 import com.example.userlistapp.domain.usecase.ObserveAuthSessionUseCase
@@ -10,15 +9,16 @@ import com.example.userlistapp.domain.usecase.ObserveLocalAvatarUseCase
 import com.example.userlistapp.domain.usecase.RemoveLocalAvatarUseCase
 import com.example.userlistapp.domain.usecase.SignInUseCase
 import com.example.userlistapp.domain.usecase.SignOutUseCase
+import com.example.userlistapp.feature.account.AuthViewModel
 
-fun authUseCases(repository: AuthSessionRepository) = AuthUseCases(
+fun authViewModel(repository: AuthSessionRepository) = AuthViewModel(
     observeSession = ObserveAuthSessionUseCase(repository),
     observeLocalAvatar = ObserveLocalAvatarUseCase(repository),
-    signIn = SignInUseCase(repository),
-    signOut = SignOutUseCase(repository),
-    loadAccount = LoadAccountUseCase(repository),
-    importLocalAvatar = ImportLocalAvatarUseCase(repository),
-    removeLocalAvatar = RemoveLocalAvatarUseCase(repository),
+    signInUseCase = SignInUseCase(repository),
+    signOutUseCase = SignOutUseCase(repository),
+    loadAccountUseCase = LoadAccountUseCase(repository),
+    importLocalAvatarUseCase = ImportLocalAvatarUseCase(repository),
+    removeLocalAvatarUseCase = RemoveLocalAvatarUseCase(repository),
 )
 
 fun sampleUser(

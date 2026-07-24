@@ -7,7 +7,13 @@ import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.common.toUiText
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
-import com.example.userlistapp.domain.usecase.AuthUseCases
+import com.example.userlistapp.domain.usecase.ImportLocalAvatarUseCase
+import com.example.userlistapp.domain.usecase.LoadAccountUseCase
+import com.example.userlistapp.domain.usecase.ObserveAuthSessionUseCase
+import com.example.userlistapp.domain.usecase.ObserveLocalAvatarUseCase
+import com.example.userlistapp.domain.usecase.RemoveLocalAvatarUseCase
+import com.example.userlistapp.domain.usecase.SignInUseCase
+import com.example.userlistapp.domain.usecase.SignOutUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -33,16 +39,22 @@ data class AuthUiState(
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val useCases: AuthUseCases,
+    observeSession: ObserveAuthSessionUseCase,
+    observeLocalAvatar: ObserveLocalAvatarUseCase,
+    private val signInUseCase: SignInUseCase,
+    private val signOutUseCase: SignOutUseCase,
+    private val loadAccountUseCase: LoadAccountUseCase,
+    private val importLocalAvatarUseCase: ImportLocalAvatarUseCase,
+    private val removeLocalAvatarUseCase: RemoveLocalAvatarUseCase,
 ) : ViewModel() {
     private val operation = MutableStateFlow(OperationState())
     private var signInJob: Job? = null
-    private val sessionState = useCases.observeSession()
+    private val sessionState = observeSession()
         .stateIn(viewModelScope, SharingStarted.Eagerly, SessionState.Initializing)
 
     val uiState: StateFlow<AuthUiState> = combine(
         sessionState,
-        useCases.observeLocalAvatar(),
+        observeLocalAvatar(),
         operation,
     ) { session, avatar, op ->
         AuthUiState(
@@ -72,7 +84,7 @@ class AuthViewModel @Inject constructor(
         signInJob = viewModelScope.launch {
             try {
                 operation.update { it.copy(signingIn = true, loginError = null) }
-                when (val result = useCases.signIn(username, password)) {
+                when (val result = signInUseCase(username, password)) {
                     is AppResult.Success -> operation.update {
                         it.copy(account = result.value, signingIn = false)
                     }
@@ -97,14 +109,14 @@ class AuthViewModel @Inject constructor(
         signInJob = null
         viewModelScope.launch {
             inFlightSignIn?.cancelAndJoin()
-            useCases.signOut()
+            signOutUseCase()
             operation.update { OperationState() }
         }
     }
 
     fun importLocalAvatar(sourceUri: String) {
         viewModelScope.launch {
-            when (val result = useCases.importLocalAvatar(sourceUri)) {
+            when (val result = importLocalAvatarUseCase(sourceUri)) {
                 is AppResult.Success -> operation.update { it.copy(avatarError = null) }
                 is AppResult.Failure -> operation.update {
                     it.copy(avatarError = result.error.toUiText())
@@ -115,7 +127,7 @@ class AuthViewModel @Inject constructor(
 
     fun removeLocalAvatar() {
         viewModelScope.launch {
-            when (val result = useCases.removeLocalAvatar()) {
+            when (val result = removeLocalAvatarUseCase()) {
                 is AppResult.Success -> operation.update { it.copy(avatarError = null) }
                 is AppResult.Failure -> operation.update {
                     it.copy(avatarError = result.error.toUiText())
@@ -134,7 +146,7 @@ class AuthViewModel @Inject constructor(
 
     private suspend fun loadAccount(userId: Int) {
         operation.update { it.copy(loadingAccount = true, accountError = null) }
-        when (val result = useCases.loadAccount(userId)) {
+        when (val result = loadAccountUseCase(userId)) {
             is AppResult.Success -> operation.update {
                 it.copy(account = result.value, loadingAccount = false)
             }

@@ -9,6 +9,7 @@ import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.LoginRequestDto
 import com.example.userlistapp.domain.model.SessionState
+import com.example.userlistapp.domain.usecase.LoadAccountUseCase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -79,7 +80,7 @@ class AuthSessionRepositoryTest {
     }
 
     @Test
-    fun `invalid stored user clears simulated session`() = runTest {
+    fun `load account is pure and use case signs out for an invalid stored user`() = runTest {
         val api = TestAuthApi()
         val source = File.createTempFile("avatar-source-", ".image")
         source.writeText("avatar")
@@ -92,6 +93,13 @@ class AuthSessionRepositoryTest {
         )
 
         assertEquals(AppResult.Failure(AppError.AuthenticationRequired), repository.loadAccount(1))
+        assertEquals(SessionState.SignedIn(1), repository.sessionState.first())
+        assertEquals(true, storedAvatar.exists())
+
+        assertEquals(
+            AppResult.Failure(AppError.AuthenticationRequired),
+            LoadAccountUseCase(repository)(1),
+        )
         assertEquals(SessionState.SignedOut, repository.sessionState.first())
         assertNull(repository.localAvatarUri.first())
         assertEquals(false, storedAvatar.exists())

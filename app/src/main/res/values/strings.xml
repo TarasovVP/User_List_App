@@ -68,7 +68,6 @@
     <string name="show_password">Show password</string>
     <string name="hide_password">Hide password</string>
     <string name="cancel">Cancel</string>
-    <string name="test_credentials_hint">Test account: emilys / emilyspass</string>
     <string name="authentication_required">Sign in is required to view users.</string>
     <string name="error_invalid_credentials">The username or password is invalid.</string>
     <string name="choose_local_photo">Choose local photo</string>

@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -201,8 +202,8 @@ fun SignInSheet(
     onCredentialsChanged: () -> Unit,
     onSubmit: (String, String) -> Unit,
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = { if (!state.isSigningIn) onDismiss() }) {
         Column(
@@ -212,7 +213,6 @@ fun SignInSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(stringResource(R.string.sign_in), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.test_credentials_hint))
             OutlinedTextField(
                 value = username,
                 onValueChange = {

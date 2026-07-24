@@ -37,7 +37,11 @@ class SignOutUseCase @Inject constructor(
 class LoadAccountUseCase @Inject constructor(
     private val repository: AuthSessionRepository,
 ) {
-    suspend operator fun invoke(userId: Int) = repository.loadAccount(userId)
+    suspend operator fun invoke(userId: Int) = repository.loadAccount(userId).also { result ->
+        if (result == AppResult.Failure(AppError.AuthenticationRequired)) {
+            repository.signOut()
+        }
+    }
 }
 
 class ImportLocalAvatarUseCase @Inject constructor(
@@ -51,13 +55,3 @@ class RemoveLocalAvatarUseCase @Inject constructor(
 ) {
     suspend operator fun invoke() = repository.removeLocalAvatar()
 }
-
-class AuthUseCases @Inject constructor(
-    val observeSession: ObserveAuthSessionUseCase,
-    val observeLocalAvatar: ObserveLocalAvatarUseCase,
-    val signIn: SignInUseCase,
-    val signOut: SignOutUseCase,
-    val loadAccount: LoadAccountUseCase,
-    val importLocalAvatar: ImportLocalAvatarUseCase,
-    val removeLocalAvatar: RemoveLocalAvatarUseCase,
-)

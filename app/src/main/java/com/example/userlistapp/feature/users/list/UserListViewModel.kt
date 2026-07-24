@@ -8,6 +8,7 @@ import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.common.toUiText
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
+import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
@@ -43,6 +44,7 @@ class UserListViewModel @Inject constructor(
     observeUsers: ObserveUsersUseCase,
     private val refreshUsers: RefreshUsersUseCase,
     private val toggleFavorite: ToggleFavoriteUseCase,
+    private val filterAndSortUsers: FilterAndSortUsersUseCase,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
@@ -122,22 +124,4 @@ class UserListViewModel @Inject constructor(
     }
 
     private data class RefreshState(val running: Boolean = false, val error: UiText? = null)
-}
-
-internal fun filterAndSortUsers(
-    users: List<User>,
-    query: String,
-    sort: UserSort,
-    favoritesOnly: Boolean,
-): List<User> {
-    val needle = query.trim()
-    val nameComparator = compareBy<User> { it.fullName.lowercase() }
-    return users.asSequence()
-        .filter { !favoritesOnly || it.isFavorite }
-        .filter { user ->
-            needle.isBlank() || listOf(user.fullName, user.email, user.companyName)
-                .any { value -> value.contains(needle, ignoreCase = true) }
-        }
-        .sortedWith(if (sort == UserSort.NAME_ASCENDING) nameComparator else nameComparator.reversed())
-        .toList()
 }
