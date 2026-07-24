@@ -9,17 +9,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -33,6 +39,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,17 +52,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -98,12 +113,98 @@ fun UserListScreen(
     onSettings: () -> Unit,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    var searchActive by rememberSaveable { mutableStateOf(state.query.isNotEmpty()) }
+    var searchValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(
+            TextFieldValue(
+                text = state.query,
+                selection = TextRange(state.query.length),
+            ),
+        )
+    }
+    val pullToRefreshState = rememberPullToRefreshState()
+    val searchFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun closeSearch() {
+        searchValue = TextFieldValue("")
+        onQuery("")
+        searchActive = false
+        keyboard?.hide()
+    }
+    BackHandler(enabled = searchActive, onBack = ::closeSearch)
+    LaunchedEffect(searchActive) {
+        if (searchActive) {
+            searchFocusRequester.requestFocus()
+            keyboard?.show()
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (searchValue.text != state.query) onQuery(searchValue.text)
+    }
     Scaffold(
         topBar = { TopAppBar(
             modifier = Modifier.shadow(4.dp),
             expandedHeight = 56.dp,
-            title = { Text(stringResource(R.string.users_title)) },
+            navigationIcon = {
+                if (searchActive) {
+                    IconButton(onClick = ::closeSearch) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                    }
+                }
+            },
+            title = {
+                if (searchActive) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        if (searchValue.text.isEmpty()) {
+                            Text(
+                                stringResource(R.string.search_users),
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                        BasicTextField(
+                            value = searchValue,
+                            onValueChange = { value ->
+                                searchValue = value
+                                onQuery(value.text)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                focusManager.clearFocus()
+                                keyboard?.hide()
+                            }),
+                            textStyle = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocusRequester)
+                                .testTag("search"),
+                        )
+                    }
+                } else {
+                    Text(stringResource(R.string.users_title))
+                }
+            },
             actions = {
+            if (searchActive && searchValue.text.isNotEmpty()) {
+                IconButton(onClick = {
+                    searchValue = TextFieldValue("")
+                    onQuery("")
+                }) {
+                    Icon(Icons.Default.Close, stringResource(R.string.clear_search))
+                }
+            } else if (!searchActive) {
+                IconButton(onClick = { searchActive = true }) {
+                    Icon(
+                        Icons.Rounded.Search,
+                        stringResource(R.string.search_users),
+                        modifier = Modifier.offset(y = 1.dp),
+                    )
+                }
+            }
             IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, stringResource(R.string.settings)) }
         }) },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -119,17 +220,18 @@ fun UserListScreen(
             else -> PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = onRefresh,
+                state = pullToRefreshState,
                 modifier = Modifier.padding(padding),
                 indicator = {
-                    if (state.isRefreshing) {
-                        Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.TopCenter) {
-                            CircularProgressIndicator(Modifier.size(24.dp))
-                        }
-                    }
+                    PullToRefreshDefaults.Indicator(
+                        state = pullToRefreshState,
+                        isRefreshing = state.isRefreshing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
                 },
             ) {
                 Column(Modifier.fillMaxSize()) {
-                    UserControls(state, onQuery, onSort, onFavoritesOnly)
+                    UserControls(state, onSort, onFavoritesOnly)
                     if (state.users.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(stringResource(if (state.hasCachedUsers || state.query.isNotBlank() || state.favoritesOnly) R.string.no_results else R.string.no_users))
@@ -149,19 +251,9 @@ fun UserListScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UserControls(state: UserListUiState, onQuery: (String) -> Unit, onSort: (UserSort) -> Unit, onFavorite: (Boolean) -> Unit) {
+private fun UserControls(state: UserListUiState, onSort: (UserSort) -> Unit, onFavorite: (Boolean) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
-    Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = onQuery,
-            label = { Text(stringResource(R.string.search_users)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-            modifier = Modifier.fillMaxWidth().testTag("search"),
-        )
+    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             ExposedDropdownMenuBox(expanded, { expanded = it }, modifier = Modifier.weight(1f)) {
                 OutlinedTextField(

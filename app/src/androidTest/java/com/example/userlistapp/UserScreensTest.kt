@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
@@ -26,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.feature.account.AccountScreen
@@ -70,6 +73,7 @@ class UserScreensTest {
         compose.onNodeWithText("Ada User").assertIsDisplayed()
         compose.onNodeWithTag("favorite_1").performClick()
         assertEquals(1, favoriteUser)
+        compose.onNodeWithContentDescription("Search users").performClick()
         val search = compose.onNodeWithTag("search")
         search.performTextInput("Grace")
         search.performImeAction()
@@ -170,12 +174,27 @@ class UserScreensTest {
 
     @Test fun signInSheetAcceptsCredentials() {
         var submitted: Pair<String, String>? = null
+        var sheetState by mutableStateOf(
+            AuthUiState(
+                session = SessionState.SignedOut,
+                loginError = UiText(R.string.error_invalid_credentials),
+            ),
+        )
         compose.setContent { UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
-            SignInSheet(AuthUiState(session = SessionState.SignedOut), {}, { username, password -> submitted = username to password })
+            SignInSheet(
+                sheetState,
+                onDismiss = {},
+                onCredentialsChanged = { sheetState = sheetState.copy(loginError = null) },
+                onSubmit = { username, password -> submitted = username to password },
+            )
         } }
+        compose.onNodeWithText("The username or password is invalid.").assertIsDisplayed()
         compose.onNodeWithTag("login_submit").assertIsNotEnabled()
         compose.onNodeWithTag("login_username").performTextInput("emilys")
+        compose.onAllNodesWithText("The username or password is invalid.").assertCountEquals(0)
         compose.onNodeWithTag("login_password").performTextInput("emilyspass")
+        compose.onNodeWithContentDescription("Show password").performClick()
+        compose.onNodeWithContentDescription("Hide password").assertIsDisplayed()
         compose.onNodeWithTag("login_submit").assertIsEnabled().performClick()
         assertEquals("emilys" to "emilyspass", submitted)
     }

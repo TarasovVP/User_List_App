@@ -121,7 +121,10 @@ private fun AppNavigation(session: SessionState) {
                         onUser = { nav.navigate(UserDetailsDestination(it)) },
                         onSettings = { nav.navigate(SettingsDestination) },
                     )
-                } else AuthenticationRequired { showSignIn = true }
+                } else AuthenticationRequired(
+                    onSignIn = { showSignIn = true },
+                    onSettings = { nav.navigate(SettingsDestination) },
+                )
             }
             composable<AccountDestination> {
                 AccountScreen(
@@ -135,7 +138,7 @@ private fun AppNavigation(session: SessionState) {
             }
             composable<UserDetailsDestination> {
                 if (session is SessionState.SignedIn) UserDetailsRoute(onBack = nav::navigateUp)
-                else AuthenticationRequired { showSignIn = true }
+                else AuthenticationRequired(onSignIn = { showSignIn = true })
             }
             composable<SettingsDestination> { SettingsRoute(onBack = nav::navigateUp) }
         }
@@ -144,6 +147,7 @@ private fun AppNavigation(session: SessionState) {
         SignInSheet(
             state = auth,
             onDismiss = { showSignIn = false; authViewModel.clearLoginError() },
+            onCredentialsChanged = authViewModel::clearLoginError,
             onSubmit = authViewModel::signIn,
         )
     }
