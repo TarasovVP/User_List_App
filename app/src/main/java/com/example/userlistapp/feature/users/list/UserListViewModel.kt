@@ -10,6 +10,7 @@ import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
+import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -42,6 +43,7 @@ data class UserListUiState(
 class UserListViewModel @Inject constructor(
     observeUsers: ObserveUsersUseCase,
     private val refreshUsers: RefreshUsersUseCase,
+    private val toggleFavorite: ToggleFavoriteUseCase,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
@@ -79,6 +81,15 @@ class UserListViewModel @Inject constructor(
     fun setQuery(value: String) { query.value = value }
     fun setSort(value: UserSort) { sort.value = value }
     fun setFavoritesOnly(value: Boolean) { favoritesOnly.value = value }
+
+    fun toggleFavorite(user: User) {
+        viewModelScope.launch {
+            when (val result = toggleFavorite(user.id, user.isFavorite)) {
+                is AppResult.Success -> Unit
+                is AppResult.Failure -> _events.emit(result.error.toUiText())
+            }
+        }
+    }
 
     fun refresh() {
         if (!refreshInFlight.compareAndSet(false, true)) return

@@ -18,8 +18,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
@@ -71,7 +72,17 @@ fun UserListRoute(onUser: (Int) -> Unit, onSettings: () -> Unit, viewModel: User
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) } }
-    UserListScreen(state, viewModel::setQuery, viewModel::setSort, viewModel::setFavoritesOnly, viewModel::refresh, onUser, onSettings, snackbar)
+    UserListScreen(
+        state,
+        viewModel::setQuery,
+        viewModel::setSort,
+        viewModel::setFavoritesOnly,
+        viewModel::refresh,
+        onUser,
+        viewModel::toggleFavorite,
+        onSettings,
+        snackbar,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,12 +94,16 @@ fun UserListScreen(
     onFavoritesOnly: (Boolean) -> Unit,
     onRefresh: () -> Unit,
     onUser: (Int) -> Unit,
+    onFavorite: (User) -> Unit,
     onSettings: () -> Unit,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.users_title)) }, actions = {
-            IconButton(onClick = onRefresh) { Icon(Icons.Default.Refresh, stringResource(R.string.refresh)) }
+        topBar = { TopAppBar(
+            modifier = Modifier.shadow(4.dp),
+            expandedHeight = 56.dp,
+            title = { Text(stringResource(R.string.users_title)) },
+            actions = {
             IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, stringResource(R.string.settings)) }
         }) },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -101,7 +116,18 @@ fun UserListScreen(
                     Button(onClick = onRefresh) { Text(stringResource(R.string.retry)) }
                 }
             }
-            else -> PullToRefreshBox(isRefreshing = state.isRefreshing, onRefresh = onRefresh, modifier = Modifier.padding(padding)) {
+            else -> PullToRefreshBox(
+                isRefreshing = state.isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.padding(padding),
+                indicator = {
+                    if (state.isRefreshing) {
+                        Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.TopCenter) {
+                            CircularProgressIndicator(Modifier.size(24.dp))
+                        }
+                    }
+                },
+            ) {
                 Column(Modifier.fillMaxSize()) {
                     UserControls(state, onQuery, onSort, onFavoritesOnly)
                     if (state.users.isEmpty()) {
@@ -110,7 +136,9 @@ fun UserListScreen(
                         }
                     } else {
                         LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.testTag("user_list")) {
-                            items(state.users, key = User::id) { user -> UserCard(user, onClick = { onUser(user.id) }) }
+                            items(state.users, key = User::id) { user ->
+                                UserCard(user, onClick = { onUser(user.id) }, onFavorite = { onFavorite(user) })
+                            }
                         }
                     }
                 }
@@ -149,20 +177,32 @@ private fun UserControls(state: UserListUiState, onQuery: (String) -> Unit, onSo
                     ) }
                 }
             }
-            FilterChip(selected = state.favoritesOnly, onClick = { onFavorite(!state.favoritesOnly) }, label = { Text(stringResource(R.string.favorites_only)) }, leadingIcon = { Icon(Icons.Default.Favorite, null) })
+            FilterChip(
+                selected = state.favoritesOnly,
+                onClick = { onFavorite(!state.favoritesOnly) },
+                label = { Text(stringResource(R.string.favorites_only)) },
+                leadingIcon = { Icon(Icons.Default.Favorite, null) },
+                modifier = Modifier.height(56.dp),
+            )
         }
     }
 }
 
 @Composable
-private fun UserCard(user: User, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun UserCard(user: User, onClick: () -> Unit, onFavorite: () -> Unit, modifier: Modifier = Modifier) {
     Card(onClick = onClick, modifier = modifier.fillMaxWidth().testTag("user_${user.id}")) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             UserAvatar(user.imageUrl, user.fullName, Modifier.size(72.dp).clip(CircleShape))
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(user.fullName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    if (user.isFavorite) Icon(Icons.Default.Favorite, stringResource(R.string.favorite), tint = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = onFavorite, modifier = Modifier.testTag("favorite_${user.id}")) {
+                        Icon(
+                            imageVector = if (user.isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = stringResource(if (user.isFavorite) R.string.favorite else R.string.not_favorite),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
                 Text(user.email, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(4.dp))
@@ -180,6 +220,7 @@ private fun UserCardPreview() {
         UserCard(
             User(1, "Ada", "Lovelace", 36, "ada@example.com", "+1 555", "ada", "", "admin", "Analytical Engines", "Research", "Engineer", "1 Main Street", "London", "England", "UK", isFavorite = true),
             onClick = {},
+            onFavorite = {},
             modifier = Modifier.padding(12.dp),
         )
     }

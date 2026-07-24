@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -69,7 +70,7 @@ fun UserDetailsScreen(
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.user_details)) }, navigationIcon = {
+        topBar = { TopAppBar(modifier = Modifier.shadow(4.dp), expandedHeight = 56.dp, title = { Text(stringResource(R.string.user_details)) }, navigationIcon = {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
         }) }, snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->

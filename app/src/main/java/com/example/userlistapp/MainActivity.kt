@@ -130,6 +130,7 @@ private fun AppNavigation(session: SessionState) {
                     onRetry = authViewModel::retryAccount,
                     onSignOut = authViewModel::signOut,
                     onAvatar = authViewModel::setLocalAvatar,
+                    onSettings = { nav.navigate(SettingsDestination) },
                 )
             }
             composable<UserDetailsDestination> {

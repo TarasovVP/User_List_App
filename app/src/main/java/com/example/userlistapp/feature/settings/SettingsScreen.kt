@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,9 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,17 +69,34 @@ fun SettingsScreen(
         }
     }
     val lastSuccessfulSyncText = formattedLastSuccessfulSync ?: stringResource(R.string.never)
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.settings)) }, navigationIcon = {
+    Scaffold(topBar = { TopAppBar(modifier = Modifier.shadow(4.dp), expandedHeight = 56.dp, title = { Text(stringResource(R.string.settings)) }, navigationIcon = {
         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
     }) }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Text(stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
             ThemeMode.entries.forEach { mode ->
                 Row(
-                    Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                    Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (state.settings.themeMode == mode) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        .selectable(
+                            selected = state.settings.themeMode == mode,
+                            onClick = { onTheme(mode) },
+                            role = Role.RadioButton,
+                        )
+                        .padding(horizontal = 8.dp)
+                        .semantics(mergeDescendants = true) {},
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RadioButton(selected = state.settings.themeMode == mode, onClick = { onTheme(mode) })
+                    RadioButton(selected = state.settings.themeMode == mode, onClick = null)
                     Text(stringResource(when (mode) { ThemeMode.SYSTEM -> R.string.theme_system; ThemeMode.LIGHT -> R.string.theme_light; ThemeMode.DARK -> R.string.theme_dark }))
                 }
             }

@@ -51,12 +51,25 @@ class UserScreensTest {
     @Test fun listRendersSearchesOpensDetailsAndSettings() {
         var query by mutableStateOf("")
         var opened: Int? = null
+        var favoriteUser: Int? = null
         var settings = false
         val users = listOf(user(1, "Ada"), user(2, "Grace"))
         compose.setContent { UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
-            UserListScreen(UserListUiState(users.filter { it.fullName.contains(query, true) }, true, isInitialLoading = false, query = query), { query = it }, {}, {}, {}, { opened = it }, { settings = true }, SnackbarHostState())
+            UserListScreen(
+                UserListUiState(users.filter { it.fullName.contains(query, true) }, true, isInitialLoading = false, query = query),
+                { query = it },
+                {},
+                {},
+                {},
+                { opened = it },
+                { favoriteUser = it.id },
+                { settings = true },
+                SnackbarHostState(),
+            )
         } }
         compose.onNodeWithText("Ada User").assertIsDisplayed()
+        compose.onNodeWithTag("favorite_1").performClick()
+        assertEquals(1, favoriteUser)
         val search = compose.onNodeWithTag("search")
         search.performTextInput("Grace")
         search.performImeAction()
@@ -143,9 +156,13 @@ class UserScreensTest {
 
     @Test fun guestAccountOpensSignIn() {
         var opened = false
+        var settingsOpened = false
         compose.setContent { UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
-            AccountScreen(AuthUiState(session = SessionState.SignedOut), { opened = true }, {}, {}, {})
+            AccountScreen(AuthUiState(session = SessionState.SignedOut), { opened = true }, {}, {}, {}, { settingsOpened = true })
         } }
+        compose.onNodeWithText("Account").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").performClick()
+        assertTrue(settingsOpened)
         compose.onNodeWithText("Guest").assertIsDisplayed()
         compose.onNodeWithTag("sign_in_open").performClick()
         assertTrue(opened)
@@ -177,6 +194,7 @@ class UserScreensTest {
                 onRetry = {},
                 onSignOut = { signedOut = true },
                 onAvatar = { if (it == null) removed = true },
+                onSettings = {},
             )
         } }
 

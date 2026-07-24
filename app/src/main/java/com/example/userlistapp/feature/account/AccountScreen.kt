@@ -13,14 +13,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -40,6 +47,7 @@ import coil3.compose.AsyncImage
 import com.example.userlistapp.R
 import com.example.userlistapp.domain.model.SessionState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountScreen(
     state: AuthUiState,
@@ -47,6 +55,7 @@ fun AccountScreen(
     onRetry: () -> Unit,
     onSignOut: () -> Unit,
     onAvatar: (String?) -> Unit,
+    onSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -59,54 +68,69 @@ fun AccountScreen(
             onAvatar(uri.toString())
         }
     }
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        when (state.session) {
-            SessionState.Initializing -> CircularProgressIndicator()
-            SessionState.SignedOut -> {
-                Text(stringResource(R.string.guest_title), style = MaterialTheme.typography.headlineMedium)
-                Text(stringResource(R.string.guest_explanation), modifier = Modifier.padding(vertical = 16.dp))
-                Button(onClick = onOpenSignIn, modifier = Modifier.testTag("sign_in_open")) { Text(stringResource(R.string.sign_in)) }
-            }
-            is SessionState.SignedIn -> when {
-                state.isAccountLoading && state.account == null -> CircularProgressIndicator()
-                state.accountError != null && state.account == null -> {
-                    Text(state.accountError.resolve(context))
-                    Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
-                }
-                state.account != null -> {
-                    val account = state.account
-                    var localImageFailed by remember(state.localAvatarUri) { mutableStateOf(false) }
-                    AsyncImage(
-                        model = state.localAvatarUri?.takeUnless { localImageFailed } ?: account.remoteImageUrl,
-                        contentDescription = stringResource(R.string.change_photo),
-                        onError = { if (state.localAvatarUri != null) localImageFailed = true },
-                        modifier = Modifier.size(128.dp).clip(CircleShape).clickable {
-                            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                    )
-                    Text(account.fullName, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(top = 16.dp))
-                    Text("@${account.username}")
-                    Text(account.email)
-                    Button(
-                        onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        modifier = Modifier.padding(top = 20.dp),
-                    ) { Text(stringResource(R.string.change_photo)) }
-                    if (state.localAvatarUri != null) {
-                        OutlinedButton(onClick = {
-                            releaseUri(context, state.localAvatarUri)
-                            onAvatar(null)
-                        }) { Text(stringResource(R.string.remove_local_photo)) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.shadow(4.dp),
+                expandedHeight = 56.dp,
+                title = { Text(stringResource(R.string.account_title)) },
+                actions = {
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Default.Settings, stringResource(R.string.settings))
                     }
-                    OutlinedButton(onClick = {
-                        state.localAvatarUri?.let { releaseUri(context, it) }
-                        onSignOut()
-                    }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.sign_out)) }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            when (state.session) {
+                SessionState.Initializing -> CircularProgressIndicator()
+                SessionState.SignedOut -> {
+                    Text(stringResource(R.string.guest_title), style = MaterialTheme.typography.headlineMedium)
+                    Text(stringResource(R.string.guest_explanation), modifier = Modifier.padding(vertical = 16.dp))
+                    Button(onClick = onOpenSignIn, modifier = Modifier.testTag("sign_in_open")) { Text(stringResource(R.string.sign_in)) }
                 }
-                else -> Unit
+                is SessionState.SignedIn -> when {
+                    state.isAccountLoading && state.account == null -> CircularProgressIndicator()
+                    state.accountError != null && state.account == null -> {
+                        Text(state.accountError.resolve(context))
+                        Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+                    }
+                    state.account != null -> {
+                        val account = state.account
+                        var localImageFailed by remember(state.localAvatarUri) { mutableStateOf(false) }
+                        AsyncImage(
+                            model = state.localAvatarUri?.takeUnless { localImageFailed } ?: account.remoteImageUrl,
+                            contentDescription = stringResource(R.string.change_photo),
+                            onError = { if (state.localAvatarUri != null) localImageFailed = true },
+                            modifier = Modifier.size(128.dp).clip(CircleShape).clickable {
+                                picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                        )
+                        Text(account.fullName, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(top = 16.dp))
+                        Text("@${account.username}")
+                        Text(account.email)
+                        Button(
+                            onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                            modifier = Modifier.padding(top = 20.dp),
+                        ) { Text(stringResource(R.string.change_photo)) }
+                        if (state.localAvatarUri != null) {
+                            OutlinedButton(onClick = {
+                                releaseUri(context, state.localAvatarUri)
+                                onAvatar(null)
+                            }) { Text(stringResource(R.string.remove_local_photo)) }
+                        }
+                        OutlinedButton(onClick = {
+                            state.localAvatarUri?.let { releaseUri(context, it) }
+                            onSignOut()
+                        }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.sign_out)) }
+                    }
+                    else -> Unit
+                }
             }
         }
     }

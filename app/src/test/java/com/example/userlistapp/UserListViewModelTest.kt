@@ -11,6 +11,7 @@ import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
+import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
 import com.example.userlistapp.feature.users.list.UserListViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -173,6 +174,7 @@ class UserListViewModelTest {
     private fun viewModel(repo: UserRepository) = UserListViewModel(
         ObserveUsersUseCase(repo),
         RefreshUsersUseCase(repo, SignedInSessionRepository),
+        ToggleFavoriteUseCase(repo),
         main.dispatcher,
     )
 
