@@ -45,7 +45,6 @@ internal fun shouldRetry(error: AppError, runAttemptCount: Int): Boolean {
         AppError.Network -> true
         is AppError.Http -> error.code >= 500
         AppError.InvalidData, AppError.Storage, AppError.Unknown -> false
-        // SaveUserNoteUseCase is the only producer of InvalidNote; refresh cannot return it.
         AppError.InvalidNote -> false
         AppError.AuthenticationRequired, AppError.InvalidCredentials -> false
     }

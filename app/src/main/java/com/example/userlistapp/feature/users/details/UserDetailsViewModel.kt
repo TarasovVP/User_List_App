@@ -50,7 +50,6 @@ class UserDetailsViewModel @Inject constructor(
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
 
-    // Keeps the nullable user flow structurally distinct from the nullable draft flow in combine.
     val uiState: StateFlow<UserDetailsUiState> = combine(
         observeUser(userId).map(::ObservedUser),
         draft,

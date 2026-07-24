@@ -17,7 +17,6 @@ class UserListApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var syncCoordinator: SyncCoordinator
 
-    // This scope intentionally lives for the entire app process.
     private val processScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override val workManagerConfiguration: Configuration

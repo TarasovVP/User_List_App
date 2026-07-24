@@ -43,7 +43,6 @@ class SettingsViewModelTest {
         assertEquals(ThemeMode.DARK, repository.state.value.themeMode)
         assertEquals(false, repository.state.value.backgroundSyncEnabled)
         assertEquals(repository.state.value, viewModel.uiState.value.settings)
-        // Scheduling is centralized in SyncCoordinator and observes the persisted value.
         assertEquals(emptyList<Boolean>(), scheduler.enabledValues)
     }
 

@@ -47,6 +47,7 @@
     <string name="error_data">The service returned invalid user data.</string>
     <string name="error_invalid_note">A note cannot be blank.</string>
     <string name="error_storage">The local data could not be updated.</string>
+    <string name="error_avatar_storage">The selected photo could not be saved on this device.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
     <string name="username">Username</string>
     <string name="age">Age</string>

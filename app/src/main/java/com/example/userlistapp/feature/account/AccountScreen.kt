@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,6 +54,12 @@ import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import com.example.userlistapp.R
 import com.example.userlistapp.domain.model.SessionState
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,18 +72,29 @@ fun AccountScreen(
     onSettings: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var avatarImportFailed by rememberSaveable { mutableStateOf(false) }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
-                try {
-                    context.contentResolver.takePersistableUriPermission(
-                        uri,
-                        android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                } catch (_: SecurityException) {
-                    // Some picker providers grant durable access without exposing a persistable grant.
+                scope.launch {
+                    avatarImportFailed = false
+                    val localUri = try {
+                        copyAvatarToInternalStorage(context, uri)
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: IOException) {
+                        avatarImportFailed = true
+                        null
+                    } catch (_: SecurityException) {
+                        avatarImportFailed = true
+                        null
+                    }
+                    if (localUri != null) {
+                        state.localAvatarUri?.let { deleteLocalAvatar(context, it) }
+                        onAvatar(localUri)
+                    }
                 }
-                onAvatar(uri.toString())
             }
         }
     Scaffold(
@@ -145,7 +163,7 @@ fun AccountScreen(
                             if (state.localAvatarUri != null) {
                                 FilledTonalIconButton(
                                     onClick = {
-                                        releaseUri(context, state.localAvatarUri)
+                                        deleteLocalAvatar(context, state.localAvatarUri)
                                         onAvatar(null)
                                     },
                                     modifier = Modifier.align(Alignment.BottomEnd),
@@ -184,9 +202,17 @@ fun AccountScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp),
                         )
+                        if (avatarImportFailed) {
+                            Text(
+                                stringResource(R.string.error_avatar_storage),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
                         OutlinedButton(
                             onClick = {
-                                state.localAvatarUri?.let { releaseUri(context, it) }
+                                state.localAvatarUri?.let { deleteLocalAvatar(context, it) }
                                 onSignOut()
                             },
                             modifier = Modifier.padding(top = 12.dp)
@@ -200,15 +226,35 @@ fun AccountScreen(
     }
 }
 
-private fun releaseUri(context: android.content.Context, value: String) {
-    try {
-        context.contentResolver.releasePersistableUriPermission(
-            value.toUri(),
-            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
-        )
-    } catch (_: SecurityException) {
-        // The picker provider may not have issued a persistable grant.
+private suspend fun copyAvatarToInternalStorage(
+    context: android.content.Context,
+    source: android.net.Uri,
+): String = withContext(Dispatchers.IO) {
+    val directory = File(context.filesDir, "account_avatars")
+    if (!directory.exists() && !directory.mkdirs()) {
+        throw IOException("Could not create the avatar directory")
     }
+    val target = File.createTempFile("avatar-", ".image", directory)
+    try {
+        val input = context.contentResolver.openInputStream(source)
+            ?: throw IOException("Could not open the selected image")
+        input.use { sourceStream ->
+            target.outputStream().use(sourceStream::copyTo)
+        }
+        target.toUri().toString()
+    } catch (error: Exception) {
+        target.delete()
+        throw error
+    }
+}
+
+private fun deleteLocalAvatar(context: android.content.Context, value: String) {
+    val uri = value.toUri()
+    if (uri.scheme != "file") return
+    val path = uri.path ?: return
+    val directory = File(context.filesDir, "account_avatars")
+    val file = File(path)
+    if (file.parentFile?.absolutePath == directory.absolutePath) file.delete()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

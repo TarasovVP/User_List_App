@@ -24,7 +24,6 @@ data class UserEntity(
     val city: String,
     val state: String,
     val country: String,
-    // The legacy column name is retained to avoid a schema-only migration.
     @ColumnInfo(name = "remoteUpdatedAt") val snapshotBatchId: Long = 0,
 )
 
@@ -69,7 +68,6 @@ data class UserWithLocal(
     val city: String,
     val state: String,
     val country: String,
-    // Mirrors UserEntity: the legacy column name is retained to avoid a schema-only migration.
     @ColumnInfo(name = "remoteUpdatedAt") val snapshotBatchId: Long,
     @ColumnInfo(name = "favoriteCreatedAt") val favoriteCreatedAt: Long?,
     val note: String?,

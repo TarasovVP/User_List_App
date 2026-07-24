@@ -8,8 +8,6 @@ import com.example.userlistapp.domain.repository.UserRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
-// Use cases are the deliberate application boundary between feature code and repositories.
-// Simple delegates stay here so validation and orchestration can evolve without changing ViewModels.
 class ObserveUsersUseCase @Inject constructor(private val repository: UserRepository) {
     operator fun invoke() = repository.observeUsers()
 }

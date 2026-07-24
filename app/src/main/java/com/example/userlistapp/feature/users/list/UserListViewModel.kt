@@ -106,8 +106,6 @@ class UserListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 refreshState.value = RefreshState(running = true)
-                // Read Room before refreshing so a fast network failure cannot race the
-                // first cached emission and suppress the required Snackbar.
                 cachedUsers.filterNotNull().first()
                 when (val result = refreshUsers()) {
                     is AppResult.Success -> refreshState.value = RefreshState()
