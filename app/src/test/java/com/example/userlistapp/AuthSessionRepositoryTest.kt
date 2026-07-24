@@ -4,23 +4,35 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.data.preferences.AuthSessionRepositoryImpl
+import com.example.userlistapp.data.preferences.LocalAvatarStorage
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.LoginRequestDto
 import com.example.userlistapp.domain.model.SessionState
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.After
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
 import java.io.File
 import java.io.IOException
+import kotlin.io.path.createTempDirectory
 
 class AuthSessionRepositoryTest {
+    private val dataStoreFiles = mutableListOf<File>()
+
+    @After
+    fun cleanup() {
+        dataStoreFiles.forEach(File::delete)
+        dataStoreFiles.clear()
+    }
+
     @Test
     fun `missing id restores signed out and successful login persists only session id`() = runTest {
         val api = TestAuthApi()
@@ -53,34 +65,50 @@ class AuthSessionRepositoryTest {
 
     @Test
     fun `sign out clears user id and local avatar`() = runTest {
+        val source = File.createTempFile("avatar-source-", ".image")
+        source.writeText("avatar")
         val repository = repository(TestAuthApi())
         repository.signIn("emilys", "emilyspass")
-        repository.setLocalAvatar("content://avatar")
+        repository.importLocalAvatar(source.toURI().toString())
+        val storedAvatar = File(java.net.URI(requireNotNull(repository.localAvatarUri.first())))
 
         assertEquals(AppResult.Success(Unit), repository.signOut())
         assertEquals(SessionState.SignedOut, repository.sessionState.first())
         assertNull(repository.localAvatarUri.first())
+        assertEquals(false, storedAvatar.exists())
     }
 
     @Test
     fun `invalid stored user clears simulated session`() = runTest {
         val api = TestAuthApi()
+        val source = File.createTempFile("avatar-source-", ".image")
+        source.writeText("avatar")
         val repository = repository(api)
         repository.signIn("emilys", "emilyspass")
+        repository.importLocalAvatar(source.toURI().toString())
+        val storedAvatar = File(java.net.URI(requireNotNull(repository.localAvatarUri.first())))
         api.accountFailure = HttpException(
             Response.error<AccountDto>(404, "{}".toResponseBody("application/json".toMediaType())),
         )
 
         assertEquals(AppResult.Failure(AppError.AuthenticationRequired), repository.loadAccount(1))
         assertEquals(SessionState.SignedOut, repository.sessionState.first())
+        assertNull(repository.localAvatarUri.first())
+        assertEquals(false, storedAvatar.exists())
     }
 
-    private fun kotlinx.coroutines.test.TestScope.repository(api: AuthApi): AuthSessionRepositoryImpl {
+    private fun kotlinx.coroutines.test.TestScope.repository(
+        api: AuthApi,
+    ): AuthSessionRepositoryImpl {
         val file = File.createTempFile("auth-session-", ".preferences_pb")
         file.delete()
+        dataStoreFiles += file
+        val avatarDirectory = createTempDirectory("account-avatars-").toFile()
         return AuthSessionRepositoryImpl(
             PreferenceDataStoreFactory.create(scope = backgroundScope, produceFile = { file }),
             api,
+            LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
+            StandardTestDispatcher(testScheduler),
         )
     }
 }

@@ -3,15 +3,19 @@ package com.example.userlistapp.di
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.core.net.toUri
 import androidx.room.Room
 import com.example.userlistapp.BuildConfig
 import com.example.userlistapp.core.common.DefaultDispatcher
+import com.example.userlistapp.core.common.IoDispatcher
 import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDao
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserLocalDataSource
 import com.example.userlistapp.data.preferences.AuthSessionRepositoryImpl
+import com.example.userlistapp.data.preferences.LocalAvatarStorage
 import com.example.userlistapp.data.preferences.SettingsRepositoryImpl
+import com.example.userlistapp.data.preferences.authSessionDataStore
 import com.example.userlistapp.data.preferences.settingsDataStore
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
@@ -36,8 +40,18 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class SettingsDataStore
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AuthDataStore
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,6 +60,11 @@ object AppModule {
     @Singleton
     @DefaultDispatcher
     fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
+    @Provides
+    @Singleton
+    @IoDispatcher
+    fun ioDispatcher(): CoroutineDispatcher = Dispatchers.IO
     @Provides
     @Singleton
     fun json(): Json = Json { ignoreUnknownKeys = true }
@@ -92,8 +111,22 @@ object AppModule {
     fun dao(database: UserDatabase): UserDao = database.userDao()
     @Provides
     @Singleton
-    fun dataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+    @SettingsDataStore
+    fun settingsDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.settingsDataStore
+
+    @Provides
+    @Singleton
+    @AuthDataStore
+    fun authDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.authSessionDataStore
+
+    @Provides
+    @Singleton
+    fun avatarStorage(@ApplicationContext context: Context): LocalAvatarStorage =
+        LocalAvatarStorage(File(context.filesDir, LocalAvatarStorage.DIRECTORY_NAME)) { uri ->
+            context.contentResolver.openInputStream(uri.toUri())
+        }
 
     @Provides
     @Singleton
@@ -113,13 +146,18 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun settings(dataStore: DataStore<Preferences>): SettingsRepository =
+    fun settings(@SettingsDataStore dataStore: DataStore<Preferences>): SettingsRepository =
         SettingsRepositoryImpl(dataStore)
 
     @Provides
     @Singleton
-    fun authSession(dataStore: DataStore<Preferences>, api: AuthApi): AuthSessionRepository =
-        AuthSessionRepositoryImpl(dataStore, api)
+    fun authSession(
+        @AuthDataStore dataStore: DataStore<Preferences>,
+        api: AuthApi,
+        avatarStorage: LocalAvatarStorage,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): AuthSessionRepository =
+        AuthSessionRepositoryImpl(dataStore, api, avatarStorage, ioDispatcher)
 
     @Provides
     @Singleton

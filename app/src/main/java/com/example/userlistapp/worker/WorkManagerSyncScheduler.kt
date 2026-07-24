@@ -24,7 +24,7 @@ class WorkManagerSyncScheduler @Inject constructor(
 
     override fun observeState(): Flow<SyncState> = workManager
         .getWorkInfosForUniqueWorkFlow(UserSyncWorker.UNIQUE_NAME)
-        .map { work -> work.toDomainState() }
+        .map { work -> work.map(WorkInfo::state).toDomainState() }
         .distinctUntilChanged()
 
     override fun setEnabled(enabled: Boolean) {
@@ -46,8 +46,8 @@ class WorkManagerSyncScheduler @Inject constructor(
     }
 }
 
-private fun List<WorkInfo>.toDomainState(): SyncState {
-    val states = map(WorkInfo::state)
+internal fun Iterable<WorkInfo.State>.toDomainState(): SyncState {
+    val states = toSet()
     return when {
         WorkInfo.State.RUNNING in states -> SyncState.RUNNING
         WorkInfo.State.ENQUEUED in states || WorkInfo.State.BLOCKED in states -> SyncState.IDLE

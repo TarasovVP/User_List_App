@@ -215,7 +215,8 @@ private object SignedInSessionRepository : AuthSessionRepository {
     )
 
     override suspend fun signOut() = AppResult.Success(Unit)
-    override suspend fun setLocalAvatar(uri: String?) = AppResult.Success(Unit)
+    override suspend fun importLocalAvatar(sourceUri: String) = AppResult.Success(Unit)
+    override suspend fun removeLocalAvatar() = AppResult.Success(Unit)
 }
 
 private class DelayedCacheRepository : UserRepository {

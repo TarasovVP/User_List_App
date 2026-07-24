@@ -141,7 +141,9 @@ private fun AppNavigation(session: SessionState) {
                     onOpenSignIn = { authViewModel.clearLoginError(); showSignIn = true },
                     onRetry = authViewModel::retryAccount,
                     onSignOut = authViewModel::signOut,
-                    onAvatar = authViewModel::setLocalAvatar,
+                    onImportAvatar = authViewModel::importLocalAvatar,
+                    onRemoveAvatar = authViewModel::removeLocalAvatar,
+                    onClearAvatarError = authViewModel::clearAvatarError,
                     onSettings = { nav.navigate(SettingsDestination) },
                 )
             }

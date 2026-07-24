@@ -36,8 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,16 +48,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import com.example.userlistapp.R
 import com.example.userlistapp.domain.model.SessionState
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,34 +59,16 @@ fun AccountScreen(
     onOpenSignIn: () -> Unit,
     onRetry: () -> Unit,
     onSignOut: () -> Unit,
-    onAvatar: (String?) -> Unit,
+    onImportAvatar: (String) -> Unit,
+    onRemoveAvatar: () -> Unit,
+    onClearAvatarError: () -> Unit,
     onSettings: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var avatarImportFailed by rememberSaveable { mutableStateOf(false) }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            if (uri != null) {
-                scope.launch {
-                    avatarImportFailed = false
-                    val localUri = try {
-                        copyAvatarToInternalStorage(context, uri)
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: IOException) {
-                        avatarImportFailed = true
-                        null
-                    } catch (_: SecurityException) {
-                        avatarImportFailed = true
-                        null
-                    }
-                    if (localUri != null) {
-                        state.localAvatarUri?.let { deleteLocalAvatar(context, it) }
-                        onAvatar(localUri)
-                    }
-                }
-            }
+            onClearAvatarError()
+            uri?.let { onImportAvatar(it.toString()) }
         }
     Scaffold(
         topBar = {
@@ -162,10 +135,7 @@ fun AccountScreen(
                             )
                             if (state.localAvatarUri != null) {
                                 FilledTonalIconButton(
-                                    onClick = {
-                                        deleteLocalAvatar(context, state.localAvatarUri)
-                                        onAvatar(null)
-                                    },
+                                    onClick = onRemoveAvatar,
                                     modifier = Modifier.align(Alignment.BottomEnd),
                                 ) {
                                     Icon(
@@ -202,19 +172,16 @@ fun AccountScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp),
                         )
-                        if (avatarImportFailed) {
+                        state.avatarError?.let { avatarError ->
                             Text(
-                                stringResource(R.string.error_avatar_storage),
+                                avatarError.resolve(context),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(top = 4.dp),
                             )
                         }
                         OutlinedButton(
-                            onClick = {
-                                state.localAvatarUri?.let { deleteLocalAvatar(context, it) }
-                                onSignOut()
-                            },
+                            onClick = onSignOut,
                             modifier = Modifier.padding(top = 12.dp)
                         ) { Text(stringResource(R.string.sign_out)) }
                     }
@@ -224,37 +191,6 @@ fun AccountScreen(
             }
         }
     }
-}
-
-private suspend fun copyAvatarToInternalStorage(
-    context: android.content.Context,
-    source: android.net.Uri,
-): String = withContext(Dispatchers.IO) {
-    val directory = File(context.filesDir, "account_avatars")
-    if (!directory.exists() && !directory.mkdirs()) {
-        throw IOException("Could not create the avatar directory")
-    }
-    val target = File.createTempFile("avatar-", ".image", directory)
-    try {
-        val input = context.contentResolver.openInputStream(source)
-            ?: throw IOException("Could not open the selected image")
-        input.use { sourceStream ->
-            target.outputStream().use(sourceStream::copyTo)
-        }
-        target.toUri().toString()
-    } catch (error: Exception) {
-        target.delete()
-        throw error
-    }
-}
-
-private fun deleteLocalAvatar(context: android.content.Context, value: String) {
-    val uri = value.toUri()
-    if (uri.scheme != "file") return
-    val path = uri.path ?: return
-    val directory = File(context.filesDir, "account_avatars")
-    val file = File(path)
-    if (file.parentFile?.absolutePath == directory.absolutePath) file.delete()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -267,7 +203,7 @@ fun SignInSheet(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = { if (!state.isSigningIn) onDismiss() }) {
         Column(
             Modifier

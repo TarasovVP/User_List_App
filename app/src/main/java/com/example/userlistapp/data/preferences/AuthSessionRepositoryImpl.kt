@@ -1,13 +1,16 @@
 package com.example.userlistapp.data.preferences
 
+import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.IoDispatcher
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.LoginRequestDto
@@ -15,15 +18,21 @@ import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
+
+val Context.authSessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_session")
 
 class AuthSessionRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
     private val api: AuthApi,
+    private val avatarStorage: LocalAvatarStorage,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthSessionRepository {
     private object Keys {
         val authenticatedUserId = intPreferencesKey("simulated_authenticated_user_id")
@@ -82,28 +91,58 @@ class AuthSessionRepositoryImpl(
         AppResult.Failure(AppError.Unknown)
     }
 
-    override suspend fun signOut(): AppResult<Unit> = try {
-        dataStore.edit {
-            it.remove(Keys.authenticatedUserId)
-            it.remove(Keys.localAccountAvatarUri)
+    override suspend fun signOut(): AppResult<Unit> = withContext(ioDispatcher) {
+        try {
+            var localAvatarUri: String? = null
+            dataStore.edit {
+                localAvatarUri = it[Keys.localAccountAvatarUri]
+                it.remove(Keys.authenticatedUserId)
+                it.remove(Keys.localAccountAvatarUri)
+            }
+            localAvatarUri?.let(avatarStorage::delete)
+            AppResult.Success(Unit)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            AppResult.Failure(AppError.Storage)
         }
-        AppResult.Success(Unit)
-    } catch (error: CancellationException) {
-        throw error
-    } catch (_: Exception) {
-        AppResult.Failure(AppError.Storage)
     }
 
-    override suspend fun setLocalAvatar(uri: String?): AppResult<Unit> = try {
-        dataStore.edit { preferences ->
-            if (uri == null) preferences.remove(Keys.localAccountAvatarUri)
-            else preferences[Keys.localAccountAvatarUri] = uri
+    override suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit> =
+        withContext(ioDispatcher) {
+            var importedUri: String? = null
+            try {
+                importedUri = avatarStorage.import(sourceUri)
+                var previousUri: String? = null
+                dataStore.edit { preferences ->
+                    previousUri = preferences[Keys.localAccountAvatarUri]
+                    preferences[Keys.localAccountAvatarUri] = importedUri
+                }
+                previousUri?.let(avatarStorage::delete)
+                AppResult.Success(Unit)
+            } catch (error: CancellationException) {
+                importedUri?.let(avatarStorage::delete)
+                throw error
+            } catch (_: Exception) {
+                importedUri?.let(avatarStorage::delete)
+                AppResult.Failure(AppError.Storage)
+            }
         }
-        AppResult.Success(Unit)
-    } catch (error: CancellationException) {
-        throw error
-    } catch (_: Exception) {
-        AppResult.Failure(AppError.Storage)
+
+    override suspend fun removeLocalAvatar(): AppResult<Unit> = withContext(ioDispatcher) {
+        try {
+            var localAvatarUri: String? = null
+            dataStore.edit { preferences ->
+                localAvatarUri = preferences[Keys.localAccountAvatarUri]
+                preferences.remove(Keys.localAccountAvatarUri)
+            }
+            localAvatarUri?.let(avatarStorage::delete)
+            AppResult.Success(Unit)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            AppResult.Failure(AppError.Storage)
+        }
     }
 }
 

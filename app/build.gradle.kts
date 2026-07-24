@@ -91,6 +91,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.androidx.arch.core.testing)
     testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.robolectric)
 
     androidTestImplementation(libs.androidx.test.ext.junit)

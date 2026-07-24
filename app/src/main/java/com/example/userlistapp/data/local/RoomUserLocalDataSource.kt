@@ -32,3 +32,9 @@ class RoomUserLocalDataSource(
 
     override suspend fun deleteNote(userId: Int) = dao.deleteNote(userId)
 }
+
+internal fun nextSnapshotBatchId(candidateBatchId: Long, latestBatchId: Long?): Long = when {
+    latestBatchId == null || latestBatchId < candidateBatchId -> candidateBatchId
+    latestBatchId < Long.MAX_VALUE -> latestBatchId + 1
+    else -> Long.MAX_VALUE
+}

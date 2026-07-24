@@ -40,5 +40,6 @@ interface AuthSessionRepository {
     suspend fun signIn(username: String, password: String): AppResult<Account>
     suspend fun loadAccount(userId: Int): AppResult<Account>
     suspend fun signOut(): AppResult<Unit>
-    suspend fun setLocalAvatar(uri: String?): AppResult<Unit>
+    suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit>
+    suspend fun removeLocalAvatar(): AppResult<Unit>
 }

@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -53,8 +52,7 @@ class UserListViewModel @Inject constructor(
     private val refreshInFlight = AtomicBoolean(false)
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
-    private val cachedUsers = observeUsers()
-        .map<List<User>, List<User>?> { it }
+    private val cachedUsers: StateFlow<List<User>?> = observeUsers()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val uiState: StateFlow<UserListUiState> = combine(

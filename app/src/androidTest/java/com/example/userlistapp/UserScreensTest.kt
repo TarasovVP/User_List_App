@@ -209,12 +209,15 @@ class UserScreensTest {
         compose.setContent {
             UserListTheme(com.example.userlistapp.domain.model.ThemeMode.LIGHT) {
                 AccountScreen(
-                    AuthUiState(session = SessionState.SignedOut),
-                    { opened = true },
-                    {},
-                    {},
-                    {},
-                    { settingsOpened = true })
+                    state = AuthUiState(session = SessionState.SignedOut),
+                    onOpenSignIn = { opened = true },
+                    onRetry = {},
+                    onSignOut = {},
+                    onImportAvatar = {},
+                    onRemoveAvatar = {},
+                    onClearAvatarError = {},
+                    onSettings = { settingsOpened = true },
+                )
             }
         }
         compose.onNodeWithText("Account").assertIsDisplayed()
@@ -270,7 +273,9 @@ class UserScreensTest {
                     onOpenSignIn = {},
                     onRetry = {},
                     onSignOut = { signedOut = true },
-                    onAvatar = { if (it == null) removed = true },
+                    onImportAvatar = {},
+                    onRemoveAvatar = { removed = true },
+                    onClearAvatarError = {},
                     onSettings = {},
                 )
             }

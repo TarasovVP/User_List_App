@@ -118,7 +118,7 @@ fun UserListScreen(
     onSettings: () -> Unit,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    var searchActive by rememberSaveable { mutableStateOf(state.query.isNotEmpty()) }
+    var searchActive by rememberSaveable { mutableStateOf(false) }
     var searchValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(
             TextFieldValue(

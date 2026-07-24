@@ -15,6 +15,7 @@ import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.worker.SyncCoordinator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -38,7 +39,7 @@ class AuthAndProtectionTest {
     fun `blank credentials do not invoke login and expose validation error`() =
         runTest(main.dispatcher) {
             val repository = FakeAuthRepository()
-            val viewModel = AuthViewModel(repository)
+            val viewModel = AuthViewModel(authUseCases(repository))
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
             runCurrent()
 
@@ -56,7 +57,7 @@ class AuthAndProtectionTest {
     fun `successful login transitions to signed in and account content`() =
         runTest(main.dispatcher) {
             val repository = FakeAuthRepository()
-            val viewModel = AuthViewModel(repository)
+            val viewModel = AuthViewModel(authUseCases(repository))
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
 
             viewModel.signIn("emilys", "emilyspass")
@@ -71,7 +72,7 @@ class AuthAndProtectionTest {
     fun `failed login remains signed out and can retry`() = runTest(main.dispatcher) {
         val repository =
             FakeAuthRepository(loginResult = AppResult.Failure(AppError.InvalidCredentials))
-        val viewModel = AuthViewModel(repository)
+        val viewModel = AuthViewModel(authUseCases(repository))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
 
         viewModel.signIn("bad", "bad")
@@ -89,7 +90,7 @@ class AuthAndProtectionTest {
     fun `sign out clears session and local avatar`() = runTest(main.dispatcher) {
         val repository = FakeAuthRepository(SessionState.SignedIn(1))
         repository.avatar.value = "content://avatar"
-        val viewModel = AuthViewModel(repository)
+        val viewModel = AuthViewModel(authUseCases(repository))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
         advanceUntilIdle()
 
@@ -98,6 +99,24 @@ class AuthAndProtectionTest {
 
         assertEquals(SessionState.SignedOut, repository.session.value)
         assertNull(repository.avatar.value)
+    }
+
+    @Test
+    fun `sign out cancels in-flight sign in and still signs out`() = runTest(main.dispatcher) {
+        val repository = FakeAuthRepository()
+        repository.suspendLogin = true
+        val viewModel = AuthViewModel(authUseCases(repository))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
+
+        viewModel.signIn("emilys", "emilyspass")
+        runCurrent()
+        viewModel.signOut()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.loginCalls)
+        assertEquals(1, repository.signOutCalls)
+        assertEquals(SessionState.SignedOut, repository.session.value)
+        assertFalse(viewModel.uiState.value.isSigningIn)
     }
 
     @Test
@@ -150,10 +169,13 @@ private class FakeAuthRepository(
     val session = MutableStateFlow(initialSession)
     val avatar = MutableStateFlow<String?>(null)
     var loginCalls = 0
+    var signOutCalls = 0
+    var suspendLogin = false
     override val sessionState: Flow<SessionState> = session
     override val localAvatarUri: Flow<String?> = avatar
     override suspend fun signIn(username: String, password: String): AppResult<Account> {
         loginCalls++
+        if (suspendLogin) awaitCancellation()
         if (loginResult is AppResult.Success) session.value =
             SessionState.SignedIn((loginResult as AppResult.Success).value.id)
         return loginResult
@@ -163,13 +185,19 @@ private class FakeAuthRepository(
         AppResult.Success(Account(userId, "emilys", "Emily", "User", "emily@example.com", ""))
 
     override suspend fun signOut(): AppResult<Unit> {
+        signOutCalls++
         session.value = SessionState.SignedOut
         avatar.value = null
         return AppResult.Success(Unit)
     }
 
-    override suspend fun setLocalAvatar(uri: String?): AppResult<Unit> {
-        avatar.value = uri
+    override suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit> {
+        avatar.value = sourceUri
+        return AppResult.Success(Unit)
+    }
+
+    override suspend fun removeLocalAvatar(): AppResult<Unit> {
+        avatar.value = null
         return AppResult.Success(Unit)
     }
 }
