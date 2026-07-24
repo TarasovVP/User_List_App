@@ -14,8 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.feature.users.components.UserAvatar
+import com.example.userlistapp.ui.theme.FavoriteSelectedColor
 import java.text.DateFormat
 import java.util.Date
 
@@ -114,7 +115,15 @@ private fun DetailsContent(
             enabled = state.canToggleFavorite,
             modifier = Modifier.testTag("favorite_button"),
         ) {
-            Icon(if (user.isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder, stringResource(if (user.isFavorite) R.string.favorite else R.string.not_favorite), tint = MaterialTheme.colorScheme.primary)
+            Icon(
+                if (user.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
+                stringResource(if (user.isFavorite) R.string.favorite else R.string.not_favorite),
+                tint = if (user.isFavorite) {
+                    FavoriteSelectedColor
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            )
         }
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Detail(stringResource(R.string.username), user.username)

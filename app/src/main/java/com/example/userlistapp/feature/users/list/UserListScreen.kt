@@ -23,9 +23,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +33,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +79,7 @@ import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.feature.users.components.UserAvatar
+import com.example.userlistapp.ui.theme.FavoriteSelectedColor
 import com.example.userlistapp.ui.theme.UserListTheme
 
 @Composable
@@ -275,10 +277,26 @@ private fun UserControls(state: UserListUiState, onSort: (UserSort) -> Unit, onF
                 selected = state.favoritesOnly,
                 onClick = { onFavorite(!state.favoritesOnly) },
                 label = { Text(stringResource(R.string.favorites_only)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                    selectedLeadingIconColor = FavoriteSelectedColor,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = state.favoritesOnly,
+                    borderColor = MaterialTheme.colorScheme.outline,
+                    selectedBorderColor = MaterialTheme.colorScheme.outline,
+                ),
                 leadingIcon = {
                     Icon(
-                        if (state.favoritesOnly) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                        if (state.favoritesOnly) Icons.Default.Star else Icons.Outlined.StarOutline,
                         null,
+                        tint = if (state.favoritesOnly) {
+                            FavoriteSelectedColor
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                     )
                 },
             )
@@ -296,9 +314,13 @@ private fun UserCard(user: User, onClick: () -> Unit, onFavorite: () -> Unit, mo
                     Text(user.fullName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     IconButton(onClick = onFavorite, modifier = Modifier.testTag("favorite_${user.id}")) {
                         Icon(
-                            imageVector = if (user.isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                            imageVector = if (user.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
                             contentDescription = stringResource(if (user.isFavorite) R.string.favorite else R.string.not_favorite),
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (user.isFavorite) {
+                                FavoriteSelectedColor
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                         )
                     }
                 }
