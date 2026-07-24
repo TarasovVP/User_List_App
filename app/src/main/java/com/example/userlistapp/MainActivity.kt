@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.People
@@ -114,6 +116,10 @@ private fun AppNavigation(session: SessionState) {
             navController = nav,
             startDestination = if (session is SessionState.SignedIn) UsersDestination else AccountDestination,
             modifier = Modifier.padding(padding),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None },
         ) {
             composable<UsersDestination> {
                 if (session is SessionState.SignedIn) {

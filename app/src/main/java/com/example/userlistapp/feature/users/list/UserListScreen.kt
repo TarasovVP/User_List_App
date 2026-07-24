@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
@@ -31,13 +32,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -253,14 +252,17 @@ fun UserListScreen(
 @Composable
 private fun UserControls(state: UserListUiState, onSort: (UserSort) -> Unit, onFavorite: (Boolean) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            ExposedDropdownMenuBox(expanded, { expanded = it }, modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = stringResource(if (state.sort == UserSort.NAME_ASCENDING) R.string.sort_az else R.string.sort_za),
-                    onValueChange = {}, readOnly = true, label = { Text(stringResource(R.string.sort)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+            ExposedDropdownMenuBox(expanded, { expanded = it }) {
+                FilterChip(
+                    selected = false,
+                    onClick = { expanded = true },
+                    label = {
+                        Text(stringResource(if (state.sort == UserSort.NAME_ASCENDING) R.string.sort_az else R.string.sort_za))
+                    },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(expanded, { expanded = false }) {
                     UserSort.entries.forEach { sort -> DropdownMenuItem(
@@ -273,8 +275,12 @@ private fun UserControls(state: UserListUiState, onSort: (UserSort) -> Unit, onF
                 selected = state.favoritesOnly,
                 onClick = { onFavorite(!state.favoritesOnly) },
                 label = { Text(stringResource(R.string.favorites_only)) },
-                leadingIcon = { Icon(Icons.Default.Favorite, null) },
-                modifier = Modifier.height(56.dp),
+                leadingIcon = {
+                    Icon(
+                        if (state.favoritesOnly) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                        null,
+                    )
+                },
             )
         }
     }

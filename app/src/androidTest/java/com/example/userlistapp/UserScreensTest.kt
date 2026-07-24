@@ -218,7 +218,7 @@ class UserScreensTest {
         } }
 
         compose.onNodeWithText("Emily Johnson").assertIsDisplayed()
-        compose.onNodeWithText("Remove local photo").performClick()
+        compose.onNodeWithContentDescription("Remove local photo").performClick()
         compose.onNodeWithText("Sign out").performClick()
         assertTrue(removed)
         assertTrue(signedOut)

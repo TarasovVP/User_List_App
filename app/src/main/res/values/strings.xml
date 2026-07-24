@@ -27,13 +27,19 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="background_sync">Background synchronization</string>
+    <string name="sync_users_daily">Sync users daily</string>
     <string name="last_sync">Last successful background synchronization</string>
     <string name="never">Never</string>
     <string name="work_state">Background work state</string>
+    <string name="sync_status">Status</string>
     <string name="work_idle">Idle</string>
     <string name="work_running">Running</string>
     <string name="work_succeeded">Succeeded</string>
     <string name="work_failed">Failed</string>
+    <string name="work_disabled">Disabled</string>
+    <string name="work_scheduled">Scheduled</string>
+    <string name="work_syncing">Syncing</string>
+    <string name="work_last_attempt_failed">Last attempt failed</string>
     <string name="label_value">%1$s: %2$s</string>
     <string name="error_network">Could not connect. Check your network and try again.</string>
     <string name="error_service">The service is temporarily unavailable (HTTP %1$d).</string>
@@ -64,6 +70,8 @@
     <string name="test_credentials_hint">Test account: emilys / emilyspass</string>
     <string name="authentication_required">Sign in is required to view users.</string>
     <string name="error_invalid_credentials">The username or password is invalid.</string>
-    <string name="change_photo">Change account photo</string>
+    <string name="choose_local_photo">Choose local photo</string>
+    <string name="change_local_photo">Change local photo</string>
+    <string name="local_photo_explanation">Stored only on this device</string>
     <string name="remove_local_photo">Remove local photo</string>
 </resources>

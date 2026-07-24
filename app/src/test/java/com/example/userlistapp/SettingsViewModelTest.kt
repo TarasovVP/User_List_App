@@ -8,6 +8,7 @@ import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.feature.settings.SettingsViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -57,6 +59,24 @@ class SettingsViewModelTest {
         assertEquals(SyncState.RUNNING, viewModel.uiState.value.syncState)
     }
 
+    @Test fun `background sync switch updates optimistically before persistence completes`() = runTest(main.dispatcher) {
+        val repository = DelayedSettingsRepository()
+        val viewModel = SettingsViewModel(repository, RecordingScheduler())
+        collectState(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setBackgroundSync(false)
+        runCurrent()
+
+        assertEquals(false, viewModel.uiState.value.settings.backgroundSyncEnabled)
+        assertEquals(true, repository.state.value.backgroundSyncEnabled)
+
+        repository.allowWrite.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(false, repository.state.value.backgroundSyncEnabled)
+        assertEquals(false, viewModel.uiState.value.settings.backgroundSyncEnabled)
+    }
+
     @Test fun `failed persistence does not update scheduler and emits error`() = runTest(main.dispatcher) {
         val scheduler = RecordingScheduler()
         val viewModel = SettingsViewModel(FailingSettingsRepository(), scheduler)
@@ -94,6 +114,18 @@ private class FailingSettingsRepository : SettingsRepository {
     override val settings: Flow<AppSettings> = MutableStateFlow(AppSettings())
     override suspend fun setTheme(mode: ThemeMode) = throw IOException("write failed")
     override suspend fun setBackgroundSync(enabled: Boolean) = throw IOException("write failed")
+    override suspend fun setLastSuccessfulSync(timestamp: Long) = Unit
+}
+
+private class DelayedSettingsRepository : SettingsRepository {
+    val state = MutableStateFlow(AppSettings())
+    val allowWrite = CompletableDeferred<Unit>()
+    override val settings: Flow<AppSettings> = state
+    override suspend fun setTheme(mode: ThemeMode) = Unit
+    override suspend fun setBackgroundSync(enabled: Boolean) {
+        allowWrite.await()
+        state.value = state.value.copy(backgroundSyncEnabled = enabled)
+    }
     override suspend fun setLastSuccessfulSync(timestamp: Long) = Unit
 }
 

@@ -5,6 +5,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,12 +15,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -118,18 +121,40 @@ fun AccountScreen(
                                 false
                             )
                         }
-                        AsyncImage(
-                            model = state.localAvatarUri?.takeUnless { localImageFailed }
-                                ?: account.remoteImageUrl,
-                            contentDescription = stringResource(R.string.change_photo),
-                            onError = { if (state.localAvatarUri != null) localImageFailed = true },
-                            modifier = Modifier
-                                .size(128.dp)
-                                .clip(CircleShape)
-                                .clickable {
-                                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                                },
-                        )
+                        Box(Modifier.size(128.dp)) {
+                            AsyncImage(
+                                model = state.localAvatarUri?.takeUnless { localImageFailed }
+                                    ?: account.remoteImageUrl,
+                                contentDescription = stringResource(
+                                    if (state.localAvatarUri == null) {
+                                        R.string.choose_local_photo
+                                    } else {
+                                        R.string.change_local_photo
+                                    },
+                                ),
+                                onError = { if (state.localAvatarUri != null) localImageFailed = true },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    },
+                            )
+                            if (state.localAvatarUri != null) {
+                                FilledTonalIconButton(
+                                    onClick = {
+                                        releaseUri(context, state.localAvatarUri)
+                                        onAvatar(null)
+                                    },
+                                    modifier = Modifier.align(Alignment.BottomEnd),
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        stringResource(R.string.remove_local_photo),
+                                    )
+                                }
+                            }
+                        }
                         Text(
                             account.fullName,
                             style = MaterialTheme.typography.headlineSmall,
@@ -140,13 +165,23 @@ fun AccountScreen(
                         Button(
                             onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                             modifier = Modifier.padding(top = 20.dp),
-                        ) { Text(stringResource(R.string.change_photo)) }
-                        if (state.localAvatarUri != null) {
-                            OutlinedButton(onClick = {
-                                releaseUri(context, state.localAvatarUri)
-                                onAvatar(null)
-                            }) { Text(stringResource(R.string.remove_local_photo)) }
+                        ) {
+                            Text(
+                                stringResource(
+                                    if (state.localAvatarUri == null) {
+                                        R.string.choose_local_photo
+                                    } else {
+                                        R.string.change_local_photo
+                                    },
+                                ),
+                            )
                         }
+                        Text(
+                            stringResource(R.string.local_photo_explanation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                         OutlinedButton(
                             onClick = {
                                 state.localAvatarUri?.let { releaseUri(context, it) }
