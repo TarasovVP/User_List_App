@@ -16,6 +16,9 @@ class JankMonitor(
     private val jankStats = JankStats.createAndTrack(window, ::onFrame).apply {
         isTrackingEnabled = false
     }
+
+    /** Frames are reported on the JankStats aggregator thread, sessions start and stop on the main thread. */
+    private val framesLock = Any()
     private val stateCounts = mutableMapOf<String, FrameCounts>()
     private var sessionTrace: QualityTrace? = null
     private var totalFrames = 0L
@@ -23,9 +26,11 @@ class JankMonitor(
 
     fun resume() {
         if (jankStats.isTrackingEnabled) return
-        totalFrames = 0
-        jankyFrames = 0
-        stateCounts.clear()
+        synchronized(framesLock) {
+            totalFrames = 0
+            jankyFrames = 0
+            stateCounts.clear()
+        }
         sessionTrace = qualityMonitor.startTrace(JANK_SESSION_TRACE).also {
             it.putAttribute(ACTIVITY_ATTRIBUTE, MAIN_ACTIVITY_VALUE)
         }
@@ -35,9 +40,16 @@ class JankMonitor(
     fun pause() {
         if (!jankStats.isTrackingEnabled) return
         jankStats.isTrackingEnabled = false
-        val summary = FRAMES_PREFIX + totalFrames + JANKY_INFIX + jankyFrames
+        val session = synchronized(framesLock) {
+            FrameSummary(
+                totalFrames = totalFrames,
+                jankyFrames = jankyFrames,
+                stateCounts = stateCounts.mapValues { (_, counts) -> counts.copy() },
+            )
+        }
+        val summary = FRAMES_PREFIX + session.totalFrames + JANKY_INFIX + session.jankyFrames
         Log.i(LOG_TAG, JANK_SESSION_LOG_PREFIX + summary)
-        stateCounts.forEach { (state, counts) ->
+        session.stateCounts.forEach { (state, counts) ->
             Log.i(
                 LOG_TAG,
                 JANK_STATE_LOG_PREFIX + state +
@@ -46,20 +58,18 @@ class JankMonitor(
             )
         }
         qualityMonitor.log(JANK_SESSION_LOG_PREFIX + summary)
-        qualityMonitor.setCustomKey(LAST_JANK_TOTAL_FRAMES_KEY, totalFrames.toString())
-        qualityMonitor.setCustomKey(LAST_JANK_FRAMES_KEY, jankyFrames.toString())
+        qualityMonitor.setCustomKey(LAST_JANK_TOTAL_FRAMES_KEY, session.totalFrames.toString())
+        qualityMonitor.setCustomKey(LAST_JANK_FRAMES_KEY, session.jankyFrames.toString())
         sessionTrace?.apply {
-            putMetric(TOTAL_FRAMES_METRIC, totalFrames)
-            putMetric(JANKY_FRAMES_METRIC, jankyFrames)
-            putAttribute(JANK_SEEN_ATTRIBUTE, (jankyFrames > 0).toString())
+            putMetric(TOTAL_FRAMES_METRIC, session.totalFrames)
+            putMetric(JANKY_FRAMES_METRIC, session.jankyFrames)
+            putAttribute(JANK_SEEN_ATTRIBUTE, (session.jankyFrames > 0).toString())
             stop()
         }
         sessionTrace = null
     }
 
     private fun onFrame(frame: FrameData) {
-        totalFrames++
-        if (frame.isJank) jankyFrames++
         val state = frame.states
             .filter { it.key in MONITORED_STATE_KEYS }
             .sortedBy { it.key }
@@ -67,10 +77,16 @@ class JankMonitor(
                 it.key + STATE_VALUE_SEPARATOR + it.value
             }
             .ifEmpty { UNKNOWN_SCREEN_STATE }
-        val counts = stateCounts.getOrPut(state) { FrameCounts() }
-        counts.total++
+        synchronized(framesLock) {
+            totalFrames++
+            val counts = stateCounts.getOrPut(state) { FrameCounts() }
+            counts.total++
+            if (frame.isJank) {
+                jankyFrames++
+                counts.janky++
+            }
+        }
         if (frame.isJank) {
-            counts.janky++
             val durationMs = frame.frameDurationUiNanos / NANOS_PER_MILLISECOND
             Log.w(
                 LOG_TAG,
@@ -80,6 +96,12 @@ class JankMonitor(
     }
 
     private data class FrameCounts(var total: Long = 0, var janky: Long = 0)
+
+    private data class FrameSummary(
+        val totalFrames: Long,
+        val jankyFrames: Long,
+        val stateCounts: Map<String, FrameCounts>,
+    )
 
     private companion object {
         const val LOG_TAG = "UserListJank"

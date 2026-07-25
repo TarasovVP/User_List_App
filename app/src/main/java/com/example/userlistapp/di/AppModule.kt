@@ -15,10 +15,9 @@ import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDao
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserLocalDataSource
-import com.example.userlistapp.data.preferences.AUTH_SESSION_DATA_STORE_NAME
-import com.example.userlistapp.data.preferences.SETTINGS_DATA_STORE_NAME
 import com.example.userlistapp.data.preferences.SettingsRepositoryImpl
-import com.example.userlistapp.data.preferences.createPreferencesDataStore
+import com.example.userlistapp.data.preferences.authSessionDataStore
+import com.example.userlistapp.data.preferences.settingsDataStore
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
@@ -142,13 +141,13 @@ object AppModule {
     @Singleton
     @SettingsDataStore
     fun settingsDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
-        createPreferencesDataStore(context, SETTINGS_DATA_STORE_NAME)
+        context.settingsDataStore
 
     @Provides
     @Singleton
     @AuthDataStore
     fun authDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
-        createPreferencesDataStore(context, AUTH_SESSION_DATA_STORE_NAME)
+        context.authSessionDataStore
 
     @Provides
     @Singleton
