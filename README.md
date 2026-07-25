@@ -51,7 +51,7 @@ Room is the single source of truth for displayed users. A refresh maps the limit
 
 ## Technology
 
-Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, AndroidX SplashScreen and Photo Picker, Hilt, Retrofit/OkHttp, Kotlin Serialization, Coil, Room, Preferences DataStore, WorkManager, JUnit, MockK, coroutine test, Turbine, AndroidX Test, and Compose UI test.
+Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, AndroidX SplashScreen and Photo Picker, Hilt, Retrofit/OkHttp, Kotlin Serialization, Coil, Room, Preferences DataStore, WorkManager, Firebase Performance Monitoring, Firebase Crashlytics, AndroidX JankStats, JUnit, MockK, coroutine test, Turbine, AndroidX Test, and Compose UI test.
 
 ## Project structure
 
@@ -64,6 +64,7 @@ Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, Android
 - `feature`: list, details, and settings UI/ViewModels
 - `feature/account`: Guest, sign-in modal, Account, and Photo Picker UI
 - `worker`: periodic sync worker and scheduler
+- `core/quality`: Firebase adapter, custom traces, Crashlytics context, and JankStats aggregation
 - `di`: dependency graph
 
 ## Build and run
@@ -75,6 +76,78 @@ Requirements: JDK 17 and Android SDK 37. Open the repository in Android Studio o
 ```
 
 Install `app/build/outputs/apk/debug/app-debug.apk`, then launch while online for the initial refresh. Cached profiles, favorites, and notes remain usable offline.
+
+## App Quality Monitoring
+
+The selected flow is initial, manual, retry, and background synchronization of the users list.
+It crosses the network, DTO mapping, Room snapshot replacement, and Compose loading/content/error
+states, so it provides useful signals without instrumenting artificial work.
+
+| Tool | Signal | Expected diagnostic value |
+|---|---|---|
+| Firebase Performance | Automatic app start, activity rendering, and HTTP/S request traces | Identify slow startup, rendering, or DummyJSON requests by device, OS, and app version |
+| Firebase Performance | `users_refresh` duration trace; `trigger`, `result`, and `error_type` attributes; `users_received` metric | Separate initial/manual/retry/background work and determine whether latency or failure correlates with a specific trigger |
+| JankStats | Per-frame state plus `ui_jank_session` totals for `total_frames` and `janky_frames` | Locate jank during loading, refresh, search/filter, or content rendering |
+| Crashlytics | Fatal crashes, ANRs, explicit logs and custom keys | Reconstruct the current operation and refresh trigger before a stability event |
+| Crashlytics | Non-fatal invalid-data, storage, and unknown failures | Surface actionable unexpected failures without treating normal offline/HTTP errors as crashes |
+
+JankStats state is deliberately bounded to `screen`, `phase`, `interaction`, and a bucketed visible
+user count. Monitoring never includes names, email addresses, user IDs, search text, credentials,
+avatar URIs, or note content. Expected network and HTTP failures remain normal application results
+and are represented by trace attributes and logs rather than non-fatal Crashlytics issues.
+
+### Firebase configuration
+
+Debug and release deliberately share the same `com.example.userlistapp` application ID and Firebase
+App for this training project. The shared configuration is stored at `app/google-services.json`, so
+Firebase is enabled by the normal build:
+
+```bash
+./gradlew assembleDebug
+```
+
+This avoids a second Firebase registration, but debug and release cannot be installed side by side,
+and development crashes/performance events appear in the same Firebase dashboards. Keep deliberate
+test events limited to development devices.
+
+### Development verification
+
+1. Build and install the Firebase-enabled debug APK on an emulator/device with Google Play services.
+2. Sign in, open Users, trigger pull-to-refresh, search/filter and scroll, then background the app.
+3. Confirm Performance events and JankStats output:
+
+   ```bash
+   adb logcat -s FirebasePerformance
+   adb logcat -s UserListJank
+   ```
+
+4. Generate a debug-only non-fatal event:
+
+   ```bash
+   adb shell am broadcast \
+     -a com.example.userlistapp.QUALITY_NON_FATAL \
+     -n com.example.userlistapp/com.example.userlistapp.QualityTestReceiver
+   ```
+
+5. Generate the initial Crashlytics test crash:
+
+   ```bash
+   adb shell am broadcast \
+     -a com.example.userlistapp.QUALITY_CRASH \
+     -n com.example.userlistapp/com.example.userlistapp.QualityTestReceiver
+   ```
+
+6. Relaunch the app so queued crash/non-fatal reports can be uploaded, then inspect the Firebase
+   Performance and Crashlytics dashboards. Delivery is asynchronous and can take several minutes.
+
+The verification receiver exists only in the debug source set. No crash control is shipped in
+release. Crashlytics can collect ANRs on supported
+Android versions, but this demo intentionally does not add a main-thread blocking ANR trigger.
+Reproduce ANRs only on a dedicated test device or inspect naturally collected reports. JankStats
+itself has no backend; Logcat retains detailed state-level development reports, while the aggregated
+session metrics are sent through the `ui_jank_session` Performance trace when Firebase is enabled.
+Google Analytics is deliberately omitted: explicit Crashlytics logs and keys provide the required
+context without enabling Analytics collection solely for automatic breadcrumbs.
 
 ## Testing
 

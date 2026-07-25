@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.DeleteUserNoteUseCase
 import com.example.userlistapp.domain.usecase.ObserveUserDetailsUseCase
@@ -188,7 +189,8 @@ private class DetailsRepository(
     override fun observeUser(userId: Int): Flow<User?> =
         user.map { it.takeIf { value -> value.id == userId } }
 
-    override suspend fun refreshUsers(): AppResult<Unit> = AppResult.Success(Unit)
+    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> =
+        AppResult.Success(Unit)
     override suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit> {
         toggleCalls++
         beforeToggle()

@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
+import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
@@ -94,6 +95,14 @@ fun UserListRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
+    TrackJankStates(
+        mapOf(
+            "screen" to "users",
+            "phase" to state.qualityPhase,
+            "interaction" to state.qualityInteraction,
+            "visible_users" to state.users.size.qualityBucket,
+        ),
+    )
     LaunchedEffect(Unit) { viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) } }
     UserListScreen(
         state,
@@ -107,6 +116,30 @@ fun UserListRoute(
         snackbar,
     )
 }
+
+private val UserListUiState.qualityPhase: String
+    get() = when {
+        isInitialLoading -> "initial_loading"
+        initialError != null -> "error"
+        isRefreshing -> "refreshing"
+        users.isEmpty() -> "empty"
+        else -> "content"
+    }
+
+private val UserListUiState.qualityInteraction: String
+    get() = when {
+        query.isNotBlank() -> "search"
+        favoritesOnly -> "favorites_filter"
+        else -> "browsing"
+    }
+
+private val Int.qualityBucket: String
+    get() = when (this) {
+        0 -> "0"
+        in 1..10 -> "1_10"
+        in 11..50 -> "11_50"
+        else -> "51_plus"
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

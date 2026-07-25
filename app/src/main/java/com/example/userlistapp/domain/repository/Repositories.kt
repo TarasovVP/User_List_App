@@ -3,6 +3,7 @@ package com.example.userlistapp.domain.repository
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface UserRepository {
     fun observeUsers(): Flow<List<User>>
     fun observeUser(userId: Int): Flow<User?>
-    suspend fun refreshUsers(): AppResult<Unit>
+    suspend fun refreshUsers(source: RefreshSource = RefreshSource.MANUAL): AppResult<Unit>
     suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit>
     suspend fun saveNote(userId: Int, note: String): AppResult<Unit>
     suspend fun deleteNote(userId: Int): AppResult<Unit>

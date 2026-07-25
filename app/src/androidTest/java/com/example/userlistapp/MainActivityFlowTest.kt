@@ -12,6 +12,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
+import com.example.userlistapp.core.quality.AppQualityMonitor
+import com.example.userlistapp.core.quality.NoOpAppQualityMonitor
 import com.example.userlistapp.di.AppModule
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
@@ -19,6 +21,7 @@ import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
@@ -56,6 +59,10 @@ class MainActivityFlowTest {
     @BindValue
     @JvmField
     val authSessionRepository: AuthSessionRepository = auth
+
+    @BindValue
+    @JvmField
+    val appQualityMonitor: AppQualityMonitor = NoOpAppQualityMonitor
 
     @BindValue
     @JvmField
@@ -156,7 +163,7 @@ private class FakeUserRepository : UserRepository {
     override fun observeUser(userId: Int): Flow<User?> =
         users.map { list -> list.firstOrNull { it.id == userId } }
 
-    override suspend fun refreshUsers() = AppResult.Success(Unit)
+    override suspend fun refreshUsers(source: RefreshSource) = AppResult.Success(Unit)
 
     override suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit> {
         users.value = users.value.map { if (it.id == userId) it.copy(isFavorite = favorite) else it }

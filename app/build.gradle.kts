@@ -6,6 +6,9 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kover)
     alias(libs.plugins.screenshot)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.performance)
 }
 
 android {
@@ -38,7 +41,6 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
             // Override with a staging URL when a non-production environment becomes available.
             buildConfigField("String", "API_BASE_URL", "\"https://dummyjson.com/\"")
         }
@@ -119,6 +121,11 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.metrics.performance)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.performance)
+    implementation(libs.firebase.crashlytics)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

@@ -4,6 +4,7 @@ import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
@@ -235,7 +236,7 @@ private class CountingUserRepository : UserRepository {
     override fun observeUser(userId: Int) =
         MutableStateFlow<com.example.userlistapp.domain.model.User?>(null)
 
-    override suspend fun refreshUsers(): AppResult<Unit> {
+    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
         refreshCalls++; return AppResult.Success(Unit)
     }
 

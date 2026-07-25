@@ -3,6 +3,7 @@ package com.example.userlistapp
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase
 import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase.Companion.MAX_NOTE_LENGTH
@@ -65,7 +66,8 @@ private class NoteRepository : UserRepository {
 
     override fun observeUsers(): Flow<List<User>> = emptyFlow()
     override fun observeUser(userId: Int): Flow<User?> = emptyFlow()
-    override suspend fun refreshUsers(): AppResult<Unit> = AppResult.Success(Unit)
+    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> =
+        AppResult.Success(Unit)
     override suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit> =
         AppResult.Success(Unit)
 

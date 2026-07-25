@@ -9,6 +9,7 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.AppSettings
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.repository.AuthSessionRepository
@@ -98,11 +99,15 @@ class UserSyncWorkerTest {
 private class WorkerUserRepository(
     private val refreshResult: AppResult<Unit>,
 ) : UserRepository {
+    var lastRefreshSource: RefreshSource? = null
     override fun observeUsers() = MutableStateFlow(emptyList<com.example.userlistapp.domain.model.User>())
     override fun observeUser(userId: Int) =
         MutableStateFlow<com.example.userlistapp.domain.model.User?>(null)
 
-    override suspend fun refreshUsers() = refreshResult
+    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
+        lastRefreshSource = source
+        return refreshResult
+    }
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)

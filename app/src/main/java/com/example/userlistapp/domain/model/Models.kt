@@ -41,6 +41,8 @@ data class AppSettings(
 
 enum class UserSort { NAME_ASCENDING, NAME_DESCENDING }
 
+enum class RefreshSource { INITIAL, MANUAL, RETRY, BACKGROUND }
+
 enum class SyncState { IDLE, RUNNING, SUCCEEDED, FAILED }
 
 sealed interface SessionState {

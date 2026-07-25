@@ -7,6 +7,7 @@ import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.User
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
@@ -77,7 +78,7 @@ class UserListViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserListUiState())
 
     init {
-        refresh()
+        refresh(RefreshSource.INITIAL)
     }
 
     fun setQuery(value: String) {
@@ -102,12 +103,18 @@ class UserListViewModel @Inject constructor(
     }
 
     fun refresh() {
+        val source =
+            if (uiState.value.initialError != null) RefreshSource.RETRY else RefreshSource.MANUAL
+        refresh(source)
+    }
+
+    private fun refresh(source: RefreshSource) {
         if (!refreshInFlight.compareAndSet(false, true)) return
         viewModelScope.launch {
             try {
                 refreshState.value = RefreshState(running = true)
                 cachedUsers.filterNotNull().first()
-                when (val result = refreshUsers()) {
+                when (val result = refreshUsers(source)) {
                     is AppResult.Success -> refreshState.value = RefreshState()
                     is AppResult.Failure -> {
                         val message = result.error.toUiText()

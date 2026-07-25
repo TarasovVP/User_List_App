@@ -2,6 +2,8 @@ package com.example.userlistapp
 
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.quality.AppQualityMonitor
+import com.example.userlistapp.core.quality.QualityTrace
 import com.example.userlistapp.data.local.UserEntity
 import com.example.userlistapp.data.local.UserLocalDataSource
 import com.example.userlistapp.data.local.UserWithLocal
@@ -9,6 +11,7 @@ import com.example.userlistapp.data.remote.CompanyDto
 import com.example.userlistapp.data.remote.UserDto
 import com.example.userlistapp.data.remote.UserRemoteDataSource
 import com.example.userlistapp.data.repository.UserRepositoryImpl
+import com.example.userlistapp.domain.model.RefreshSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +27,7 @@ class UserRepositoryImplTest {
     @Test
     fun `refresh maps and persists complete snapshot`() = runTest {
         val local = FakeLocal()
+        val monitor = RecordingQualityMonitor()
         val repo = UserRepositoryImpl(
             FakeRemote(
                 listOf(
@@ -33,22 +37,29 @@ class UserRepositoryImplTest {
                         company = CompanyDto(name = "Math")
                     )
                 )
-            ), local, Dispatchers.Unconfined
+            ), local, Dispatchers.Unconfined, monitor
         )
-        assertTrue(repo.refreshUsers() is AppResult.Success)
+        assertTrue(repo.refreshUsers(RefreshSource.INITIAL) is AppResult.Success)
         assertEquals(5, local.saved.single().id)
         assertEquals("Math", local.saved.single().companyName)
+        assertEquals("initial", monitor.trace.attributes["trigger"])
+        assertEquals("success", monitor.trace.attributes["result"])
+        assertEquals(1L, monitor.trace.metrics["users_received"])
+        assertTrue(monitor.trace.stopped)
     }
 
     @Test
     fun `network failure preserves cached content and maps error`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val monitor = RecordingQualityMonitor()
         val repo = UserRepositoryImpl(object : UserRemoteDataSource {
             override suspend fun getUsers(): List<UserDto> = throw IOException()
-        }, local, Dispatchers.Unconfined)
-        val result = repo.refreshUsers()
+        }, local, Dispatchers.Unconfined, monitor)
+        val result = repo.refreshUsers(RefreshSource.MANUAL)
         assertEquals(AppResult.Failure(AppError.Network), result)
         assertEquals(9, local.saved.single().id)
+        assertEquals("network", monitor.trace.attributes["error_type"])
+        assertTrue(monitor.nonFatals.isEmpty())
     }
 
     @Test
@@ -81,6 +92,7 @@ class UserRepositoryImplTest {
     @Test
     fun `duplicate remote IDs are rejected without changing local cache`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val monitor = RecordingQualityMonitor()
         val remote = FakeRemote(
             listOf(
                 UserDto(id = 1, firstName = "Ada"),
@@ -88,10 +100,17 @@ class UserRepositoryImplTest {
             ),
         )
 
-        val result = UserRepositoryImpl(remote, local, Dispatchers.Unconfined).refreshUsers()
+        val result = UserRepositoryImpl(
+            remote,
+            local,
+            Dispatchers.Unconfined,
+            monitor,
+        ).refreshUsers(RefreshSource.RETRY)
 
         assertEquals(AppResult.Failure(AppError.InvalidData), result)
         assertEquals(listOf(9), local.saved.map { it.id })
+        assertEquals("retry", monitor.trace.attributes["trigger"])
+        assertEquals(1, monitor.nonFatals.size)
     }
 
     @Test
@@ -123,6 +142,45 @@ class UserRepositoryImplTest {
         assertEquals("remember", local.note)
         assertTrue(repo.deleteNote(4) is AppResult.Success)
         assertEquals(null, local.note)
+    }
+}
+
+private class RecordingQualityMonitor : AppQualityMonitor {
+    override val isEnabled = true
+    val trace = RecordingQualityTrace()
+    val nonFatals = mutableListOf<Throwable>()
+    val keys = mutableMapOf<String, String>()
+    val logs = mutableListOf<String>()
+
+    override fun startTrace(name: String): QualityTrace = trace
+    override fun log(message: String) {
+        logs += message
+    }
+
+    override fun setCustomKey(name: String, value: String) {
+        keys[name] = value
+    }
+
+    override fun recordNonFatal(error: Throwable) {
+        nonFatals += error
+    }
+}
+
+private class RecordingQualityTrace : QualityTrace {
+    val attributes = mutableMapOf<String, String>()
+    val metrics = mutableMapOf<String, Long>()
+    var stopped = false
+
+    override fun putAttribute(name: String, value: String) {
+        attributes[name] = value
+    }
+
+    override fun putMetric(name: String, value: Long) {
+        metrics[name] = value
+    }
+
+    override fun stop() {
+        stopped = true
     }
 }
 

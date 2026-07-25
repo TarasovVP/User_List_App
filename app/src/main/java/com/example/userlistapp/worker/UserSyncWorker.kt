@@ -7,6 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import dagger.assisted.Assisted
@@ -19,21 +20,22 @@ class UserSyncWorker @AssistedInject constructor(
     private val refreshUsers: RefreshUsersUseCase,
     private val settings: SettingsRepository,
 ) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result = when (val result = refreshUsers()) {
-        is AppResult.Success -> {
-            settings.setLastSuccessfulSync(System.currentTimeMillis())
-            Result.success()
-        }
+    override suspend fun doWork(): Result =
+        when (val result = refreshUsers(RefreshSource.BACKGROUND)) {
+            is AppResult.Success -> {
+                settings.setLastSuccessfulSync(System.currentTimeMillis())
+                Result.success()
+            }
 
-        is AppResult.Failure -> when {
-            result.error == AppError.AuthenticationRequired -> Result.success()
-            shouldRetry(result.error, runAttemptCount) -> Result.retry()
-            else -> {
-                Log.e(TAG, "Sync failed permanently: ${result.error}")
-                Result.failure()
+            is AppResult.Failure -> when {
+                result.error == AppError.AuthenticationRequired -> Result.success()
+                shouldRetry(result.error, runAttemptCount) -> Result.retry()
+                else -> {
+                    Log.e(TAG, "Sync failed permanently: ${result.error}")
+                    Result.failure()
+                }
             }
         }
-    }
 
     companion object {
         const val UNIQUE_NAME = "user-sync"

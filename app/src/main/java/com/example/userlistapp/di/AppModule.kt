@@ -8,6 +8,8 @@ import androidx.room.Room
 import com.example.userlistapp.BuildConfig
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.IoDispatcher
+import com.example.userlistapp.core.quality.AppQualityMonitor
+import com.example.userlistapp.core.quality.FirebaseAppQualityMonitor
 import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDao
 import com.example.userlistapp.data.local.UserDatabase
@@ -67,6 +69,11 @@ object AppModule {
     @Singleton
     @IoDispatcher
     fun ioDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @Singleton
+    fun qualityMonitor(implementation: FirebaseAppQualityMonitor): AppQualityMonitor = implementation
+
     @Provides
     @Singleton
     fun json(): Json = Json { ignoreUnknownKeys = true }
@@ -156,7 +163,8 @@ object AppModule {
         remote: UserRemoteDataSource,
         local: UserLocalDataSource,
         @DefaultDispatcher dispatcher: CoroutineDispatcher,
-    ): UserRepository = UserRepositoryImpl(remote, local, dispatcher)
+        qualityMonitor: AppQualityMonitor,
+    ): UserRepository = UserRepositoryImpl(remote, local, dispatcher, qualityMonitor)
 
     @Provides
     @Singleton

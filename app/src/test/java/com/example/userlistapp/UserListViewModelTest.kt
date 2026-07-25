@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.Account
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
@@ -57,6 +58,7 @@ class UserListViewModelTest {
             collectState(vm)
             advanceUntilIdle()
             assertEquals(2, vm.uiState.value.users.size)
+            assertEquals(listOf(RefreshSource.INITIAL), repo.refreshSources)
             assertFalse(vm.uiState.value.isInitialLoading)
             assertNull(vm.uiState.value.initialError)
 
@@ -153,6 +155,10 @@ class UserListViewModelTest {
         retryGate.complete(Unit)
         advanceUntilIdle()
         assertFalse(vm.uiState.value.isInitialLoading)
+        assertEquals(
+            listOf(RefreshSource.INITIAL, RefreshSource.RETRY),
+            repository.refreshSources,
+        )
     }
 
     @Test
@@ -181,7 +187,7 @@ class UserListViewModelTest {
         runTest(main.dispatcher) {
             val repository = mockk<UserRepository>()
             every { repository.observeUsers() } returns MutableStateFlow(listOf(sampleUser()))
-            coEvery { repository.refreshUsers() } returns AppResult.Success(Unit)
+            coEvery { repository.refreshUsers(RefreshSource.INITIAL) } returns AppResult.Success(Unit)
             val vm = viewModel(repository)
             collectState(vm)
 
@@ -189,7 +195,7 @@ class UserListViewModelTest {
 
             assertEquals(listOf(1), vm.uiState.value.users.map(User::id))
             assertFalse(vm.uiState.value.isInitialLoading)
-            coVerify(exactly = 1) { repository.refreshUsers() }
+            coVerify(exactly = 1) { repository.refreshUsers(RefreshSource.INITIAL) }
         }
 
     private fun viewModel(repo: UserRepository) = UserListViewModel(
@@ -224,11 +230,13 @@ private object SignedInSessionRepository : AuthSessionRepository {
 private class DelayedCacheRepository : UserRepository {
     val users = MutableSharedFlow<List<User>>()
     var refreshCalls = 0
+    val refreshSources = mutableListOf<RefreshSource>()
 
     override fun observeUsers(): Flow<List<User>> = users
     override fun observeUser(userId: Int): Flow<User?> = MutableStateFlow(null)
-    override suspend fun refreshUsers(): AppResult<Unit> {
+    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
         refreshCalls++
+        refreshSources += source
         return AppResult.Failure(AppError.Network)
     }
 
@@ -243,13 +251,17 @@ private class FakeUserRepository(
     var beforeRefresh: suspend () -> Unit = {},
 ) : UserRepository {
     var refreshCalls = 0
+    val refreshSources = mutableListOf<RefreshSource>()
     private val users = MutableStateFlow(initial)
     override fun observeUsers(): Flow<List<User>> = users
     override fun observeUser(userId: Int) =
         users.map { list -> list.firstOrNull { it.id == userId } }
 
-    override suspend fun refreshUsers(): AppResult<Unit> {
-        refreshCalls++; beforeRefresh(); return refreshResult
+    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
+        refreshCalls++
+        refreshSources += source
+        beforeRefresh()
+        return refreshResult
     }
 
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
