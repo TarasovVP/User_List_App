@@ -202,83 +202,91 @@ fun SignInSheet(
     onCredentialsChanged: () -> Unit,
     onSubmit: (String, String) -> Unit,
 ) {
+    ModalBottomSheet(onDismissRequest = { if (!state.isSigningIn) onDismiss() }) {
+        SignInContent(state, onDismiss, onCredentialsChanged, onSubmit)
+    }
+}
+
+@Composable
+fun SignInContent(
+    state: AuthUiState,
+    onDismiss: () -> Unit,
+    onCredentialsChanged: () -> Unit,
+    onSubmit: (String, String) -> Unit,
+) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    ModalBottomSheet(onDismissRequest = { if (!state.isSigningIn) onDismiss() }) {
-        Column(
-            Modifier
+    val canSubmit = !state.isSigningIn && username.isNotBlank() && password.isNotBlank()
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(stringResource(R.string.sign_in), style = MaterialTheme.typography.headlineSmall)
+        OutlinedTextField(
+            value = username,
+            onValueChange = {
+                username = it
+                onCredentialsChanged()
+            },
+            enabled = !state.isSigningIn,
+            label = { Text(stringResource(R.string.username)) }, singleLine = true,
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(stringResource(R.string.sign_in), style = MaterialTheme.typography.headlineSmall)
-            OutlinedTextField(
-                value = username,
-                onValueChange = {
-                    username = it
-                    onCredentialsChanged()
-                },
-                enabled = !state.isSigningIn,
-                label = { Text(stringResource(R.string.username)) }, singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("login_username"),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            )
-            OutlinedTextField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    onCredentialsChanged()
-                },
-                enabled = !state.isSigningIn,
-                label = { Text(stringResource(R.string.password)) }, singleLine = true,
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = stringResource(
-                                if (passwordVisible) R.string.hide_password else R.string.show_password,
-                            ),
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("login_password"),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (!state.isSigningIn) onSubmit(
-                        username,
-                        password
+                .testTag("login_username"),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        )
+        OutlinedTextField(
+            value = password,
+            onValueChange = {
+                password = it
+                onCredentialsChanged()
+            },
+            enabled = !state.isSigningIn,
+            label = { Text(stringResource(R.string.password)) }, singleLine = true,
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = stringResource(
+                            if (passwordVisible) R.string.hide_password else R.string.show_password,
+                        ),
                     )
-                }),
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("login_password"),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = {
+                if (canSubmit) onSubmit(username, password)
+            }),
+        )
+        state.loginError?.let {
+            Text(
+                it.resolve(LocalContext.current),
+                color = MaterialTheme.colorScheme.error
             )
-            state.loginError?.let {
-                Text(
-                    it.resolve(LocalContext.current),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            Button(
-                onClick = { onSubmit(username, password) },
-                enabled = !state.isSigningIn && username.isNotBlank() && password.isNotBlank(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("login_submit"),
-            ) {
-                if (state.isSigningIn) CircularProgressIndicator(Modifier.size(20.dp))
-                else Text(stringResource(R.string.sign_in))
-            }
-            OutlinedButton(
-                onClick = onDismiss,
-                enabled = !state.isSigningIn,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.cancel))
-            }
+        }
+        Button(
+            onClick = { onSubmit(username, password) },
+            enabled = canSubmit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("login_submit"),
+        ) {
+            if (state.isSigningIn) CircularProgressIndicator(Modifier.size(20.dp))
+            else Text(stringResource(R.string.sign_in))
+        }
+        OutlinedButton(
+            onClick = onDismiss,
+            enabled = !state.isSigningIn,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.cancel))
         }
     }
 }

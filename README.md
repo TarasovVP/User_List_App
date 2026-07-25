@@ -83,6 +83,39 @@ Install `app/build/outputs/apk/debug/app-debug.apk`, then launch while online fo
 ./gradlew lintDebug
 ./gradlew compileDebugAndroidTestKotlin
 ./gradlew connectedDebugAndroidTest
+./gradlew validateDebugScreenshotTest
 ```
 
-Unit coverage includes the session-aware refresh boundary, authentication ViewModel states, sign out/avatar clearing, combined sync coordination, and a MockK-based `UserListViewModel` test in addition to the existing fake-based suite. Connected tests require a running emulator or attached device. Real DummyJSON sign-in, the system Photo Picker, splash appearance, and visual review require an Android runtime.
+Unit coverage includes the session-aware refresh boundary, authentication ViewModel states,
+sign out/avatar clearing, combined sync coordination, property-based invariants, and ViewModel
+behavior.
+
+Connected tests require an emulator or attached device. The reference environment is the API 37
+medium-phone AVD with `en-US`, default density, and default font scale. Component tests use Compose
+semantics, while `MainActivityFlowTest` launches the real activity and navigation graph with
+Hilt-bound in-memory repositories. The flow is deterministic and never accesses DummyJSON, Room,
+DataStore, or WorkManager.
+
+The selected application flow stays inside Compose, so Compose Test APIs provide node discovery,
+actions, assertions, synchronization, and Espresso-backed idling. UI Automator is deliberately not
+used: the Android Photo Picker belongs to system UI, varies between platform and Mainline versions,
+and is outside the stable application-flow boundary. Its launcher callback is covered at the
+component boundary; platform ownership is documented rather than duplicated by a brittle selector.
+
+Screenshot tests use the experimental official Compose Preview Screenshot Testing plugin and run
+host-side through Layoutlib. Four deliberately limited references cover the user list in light and
+dark themes, the sign-in validation state, and user details. References are stored in
+`app/src/screenshotTestDebug/reference`; validation diffs are written to
+`app/build/reports/screenshotTest/preview/debug/index.html`.
+
+To review an intentional visual change:
+
+1. Run `./gradlew validateDebugScreenshotTest` and inspect the HTML diff.
+2. Confirm that every changed pixel is expected.
+3. Run `./gradlew updateDebugScreenshotTest`.
+4. Review and commit the updated PNG references with the UI change.
+
+Keep screenshot execution on JDK 17 with the repository's pinned AGP, Compose BOM, and screenshot
+plugin. Do not add device, locale, or font-scale permutations unless they provide distinct
+regression feedback. Behavior tests verify interactions and state transitions; screenshot tests
+verify rendering and must not replace behavior assertions.

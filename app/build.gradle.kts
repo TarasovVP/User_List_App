@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kover)
+    alias(libs.plugins.screenshot)
 }
 
 android {
@@ -54,8 +55,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { compose = true; buildConfig = true }
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
-    testOptions.unitTests.isIncludeAndroidResources = true
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        screenshotTests.imageDifferenceThreshold = 0.0001f
+    }
     sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
 }
 
@@ -154,4 +159,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    screenshotTestImplementation(platform(libs.androidx.compose.bom))
+    screenshotTestImplementation(libs.androidx.compose.ui.tooling)
+    screenshotTestImplementation(libs.screenshot.validation.api)
 }

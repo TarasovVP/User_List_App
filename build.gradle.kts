@@ -5,4 +5,5 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt.android) apply false
     alias(libs.plugins.kover) apply false
+    alias(libs.plugins.screenshot) apply false
 }
