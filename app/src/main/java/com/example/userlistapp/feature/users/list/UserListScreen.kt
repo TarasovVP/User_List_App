@@ -1,5 +1,7 @@
 package com.example.userlistapp.feature.users.list
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
@@ -79,6 +81,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
 import com.example.userlistapp.core.quality.TrackJankStates
+import com.example.userlistapp.core.ui.UiAnimationLabels
+import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
@@ -97,10 +101,10 @@ fun UserListRoute(
     val context = LocalContext.current
     TrackJankStates(
         mapOf(
-            "screen" to "users",
-            "phase" to state.qualityPhase,
-            "interaction" to state.qualityInteraction,
-            "visible_users" to state.users.size.qualityBucket,
+            SCREEN_STATE_KEY to USERS_SCREEN_VALUE,
+            PHASE_STATE_KEY to state.qualityPhase,
+            INTERACTION_STATE_KEY to state.qualityInteraction,
+            VISIBLE_USERS_STATE_KEY to state.users.size.qualityBucket,
         ),
     )
     LaunchedEffect(Unit) { viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) } }
@@ -119,26 +123,26 @@ fun UserListRoute(
 
 private val UserListUiState.qualityPhase: String
     get() = when {
-        isInitialLoading -> "initial_loading"
-        initialError != null -> "error"
-        isRefreshing -> "refreshing"
-        users.isEmpty() -> "empty"
-        else -> "content"
+        isInitialLoading -> INITIAL_LOADING_PHASE
+        initialError != null -> ERROR_PHASE
+        isRefreshing -> REFRESHING_PHASE
+        users.isEmpty() -> EMPTY_PHASE
+        else -> CONTENT_PHASE
     }
 
 private val UserListUiState.qualityInteraction: String
     get() = when {
-        query.isNotBlank() -> "search"
-        favoritesOnly -> "favorites_filter"
-        else -> "browsing"
+        query.isNotBlank() -> SEARCH_INTERACTION
+        favoritesOnly -> FAVORITES_FILTER_INTERACTION
+        else -> BROWSING_INTERACTION
     }
 
 private val Int.qualityBucket: String
     get() = when (this) {
-        0 -> "0"
-        in 1..10 -> "1_10"
-        in 11..50 -> "11_50"
-        else -> "51_plus"
+        0 -> ZERO_USERS_BUCKET
+        in 1..10 -> ONE_TO_TEN_USERS_BUCKET
+        in 11..50 -> ELEVEN_TO_FIFTY_USERS_BUCKET
+        else -> FIFTY_ONE_PLUS_USERS_BUCKET
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -168,8 +172,8 @@ fun UserListScreen(
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     fun closeSearch() {
-        searchValue = TextFieldValue("")
-        onQuery("")
+        searchValue = TextFieldValue(String.EMPTY)
+        onQuery(String.EMPTY)
         searchActive = false
         keyboard?.hide()
     }
@@ -198,7 +202,7 @@ fun UserListScreen(
                 title = {
                     AnimatedContent(
                         targetState = searchActive,
-                        label = "search_title",
+                        label = UiAnimationLabels.SEARCH_TITLE,
                     ) { active ->
                         if (active) {
                             val searchLabel = stringResource(R.string.search_users)
@@ -228,7 +232,7 @@ fun UserListScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .focusRequester(searchFocusRequester)
-                                        .testTag("search")
+                                        .testTag(UiTestTags.SEARCH)
                                         .semantics { contentDescription = searchLabel },
                                 )
                             }
@@ -240,8 +244,8 @@ fun UserListScreen(
                 actions = {
                     if (searchActive && searchValue.text.isNotEmpty()) {
                         IconButton(onClick = {
-                            searchValue = TextFieldValue("")
-                            onQuery("")
+                            searchValue = TextFieldValue(String.EMPTY)
+                            onQuery(String.EMPTY)
                         }) {
                             Icon(Icons.Default.Close, stringResource(R.string.clear_search))
                         }
@@ -268,7 +272,7 @@ fun UserListScreen(
             state.isInitialLoading -> Centered(padding) {
                 CircularProgressIndicator(
                     Modifier.testTag(
-                        "initial_loading"
+                        UiAnimationLabels.INITIAL_LOADING
                     )
                 )
             }
@@ -306,7 +310,7 @@ fun UserListScreen(
                         LazyColumn(
                             contentPadding = PaddingValues(12.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.testTag("user_list")
+                            modifier = Modifier.testTag(UiTestTags.USER_LIST)
                         ) {
                             items(state.users, key = User::id) { user ->
                                 UserCard(
@@ -396,7 +400,7 @@ private fun UserCard(
 ) {
     Card(onClick = onClick, modifier = modifier
         .fillMaxWidth()
-        .testTag("user_${user.id}")) {
+        .testTag(UiTestTags.user(user.id))) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             UserAvatar(user.imageUrl, null, Modifier
                 .size(72.dp)
@@ -412,11 +416,11 @@ private fun UserCard(
                     )
                     IconButton(
                         onClick = onFavorite,
-                        modifier = Modifier.testTag("favorite_${user.id}")
+                        modifier = Modifier.testTag(UiTestTags.favorite(user.id))
                     ) {
                         AnimatedContent(
                             targetState = user.isFavorite,
-                            label = "favorite_icon",
+                            label = UiAnimationLabels.FAVORITE_ICON,
                         ) { isFavorite ->
                             Icon(
                                 imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
@@ -442,21 +446,21 @@ private fun UserCardPreview() {
         UserCard(
             User(
                 1,
-                "Ada",
-                "Lovelace",
+                PreviewUserData.FIRST_NAME,
+                PreviewUserData.LAST_NAME,
                 36,
-                "ada@example.com",
-                "+1 555",
-                "ada",
-                "",
-                "admin",
-                "Analytical Engines",
-                "Research",
-                "Engineer",
-                "1 Main Street",
-                "London",
-                "England",
-                "UK",
+                PreviewUserData.EMAIL,
+                PreviewUserData.PHONE,
+                PreviewUserData.USERNAME,
+                String.EMPTY,
+                PreviewUserData.ROLE,
+                PreviewUserData.COMPANY,
+                PreviewUserData.DEPARTMENT,
+                PreviewUserData.JOB_TITLE,
+                PreviewUserData.STREET,
+                PreviewUserData.CITY,
+                PreviewUserData.STATE,
+                PreviewUserData.COUNTRY,
                 isFavorite = true
             ),
             onClick = {},
@@ -471,3 +475,37 @@ private fun Centered(padding: PaddingValues, content: @Composable () -> Unit) =
     Box(Modifier
         .fillMaxSize()
         .padding(padding), contentAlignment = Alignment.Center) { content() }
+
+private const val SCREEN_STATE_KEY = "screen"
+private const val PHASE_STATE_KEY = "phase"
+private const val INTERACTION_STATE_KEY = "interaction"
+private const val VISIBLE_USERS_STATE_KEY = "visible_users"
+private const val USERS_SCREEN_VALUE = "users"
+private const val INITIAL_LOADING_PHASE = "initial_loading"
+private const val ERROR_PHASE = "error"
+private const val REFRESHING_PHASE = "refreshing"
+private const val EMPTY_PHASE = "empty"
+private const val CONTENT_PHASE = "content"
+private const val SEARCH_INTERACTION = "search"
+private const val FAVORITES_FILTER_INTERACTION = "favorites_filter"
+private const val BROWSING_INTERACTION = "browsing"
+private const val ZERO_USERS_BUCKET = "0"
+private const val ONE_TO_TEN_USERS_BUCKET = "1_10"
+private const val ELEVEN_TO_FIFTY_USERS_BUCKET = "11_50"
+private const val FIFTY_ONE_PLUS_USERS_BUCKET = "51_plus"
+
+private object PreviewUserData {
+    const val FIRST_NAME = "Ada"
+    const val LAST_NAME = "Lovelace"
+    const val EMAIL = "ada@example.com"
+    const val PHONE = "+1 555"
+    const val USERNAME = "ada"
+    const val ROLE = "admin"
+    const val COMPANY = "Analytical Engines"
+    const val DEPARTMENT = "Research"
+    const val JOB_TITLE = "Engineer"
+    const val STREET = "1 Main Street"
+    const val CITY = "London"
+    const val STATE = "England"
+    const val COUNTRY = "UK"
+}

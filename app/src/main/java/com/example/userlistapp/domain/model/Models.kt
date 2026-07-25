@@ -1,5 +1,7 @@
 package com.example.userlistapp.domain.model
 
+import com.example.userlistapp.core.common.EMPTY
+
 data class User(
     val id: Int,
     val firstName: String,
@@ -22,13 +24,15 @@ data class User(
     val noteModifiedAt: Long? = null,
 ) {
     val fullName: String
-        get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
+        get() = listOf(firstName, lastName).filter(String::isNotBlank)
+            .joinToString(NAME_SEPARATOR)
     val initials: String
         get() = listOf(firstName, lastName).mapNotNull {
             it.firstOrNull()?.uppercase()
-        }.joinToString("").take(2)
+        }.joinToString(String.EMPTY).take(2)
     val fullAddress: String
-        get() = listOf(street, city, state, country).filter(String::isNotBlank).joinToString(", ")
+        get() = listOf(street, city, state, country).filter(String::isNotBlank)
+            .joinToString(ADDRESS_SEPARATOR)
 }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
@@ -60,5 +64,9 @@ data class Account(
     val remoteImageUrl: String,
 ) {
     val fullName: String
-        get() = listOf(firstName, lastName).filter(String::isNotBlank).joinToString(" ")
+        get() = listOf(firstName, lastName).filter(String::isNotBlank)
+            .joinToString(NAME_SEPARATOR)
 }
+
+private const val NAME_SEPARATOR = " "
+private const val ADDRESS_SEPARATOR = ", "

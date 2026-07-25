@@ -1,5 +1,7 @@
 package com.example.userlistapp.feature.users.list
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.userlistapp.core.common.AppResult
@@ -35,7 +37,7 @@ data class UserListUiState(
     val isInitialLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val initialError: UiText? = null,
-    val query: String = "",
+    val query: String = String.EMPTY,
     val sort: UserSort = UserSort.NAME_ASCENDING,
     val favoritesOnly: Boolean = false,
 )
@@ -48,7 +50,7 @@ class UserListViewModel @Inject constructor(
     private val filterAndSortUsers: FilterAndSortUsersUseCase,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
-    private val query = MutableStateFlow("")
+    private val query = MutableStateFlow(String.EMPTY)
     private val sort = MutableStateFlow(UserSort.NAME_ASCENDING)
     private val favoritesOnly = MutableStateFlow(false)
     private val refreshState = MutableStateFlow(RefreshState(running = true))

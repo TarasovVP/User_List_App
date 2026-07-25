@@ -88,14 +88,18 @@ object AppModule {
         @ApplicationContext context: Context,
         tokenHolder: AuthTokenHolder,
     ): OkHttpClient = OkHttpClient.Builder()
-        .cache(Cache(File(context.cacheDir, "http_cache"), 10L * 1024 * 1024))
+        .cache(Cache(File(context.cacheDir, HTTP_CACHE_DIRECTORY), HTTP_CACHE_SIZE_BYTES))
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .addInterceptor { chain ->
             val request = chain.request().newBuilder()
-                .header("Accept", "application/json")
-                .apply { tokenHolder.accessToken?.let { header("Authorization", "Bearer $it") } }
+                .header(ACCEPT_HEADER, JSON_MEDIA_TYPE)
+                .apply {
+                    tokenHolder.accessToken?.let {
+                        header(AUTHORIZATION_HEADER, BEARER_PREFIX + it)
+                    }
+                }
                 .build()
             chain.proceed(request)
         }
@@ -111,7 +115,7 @@ object AppModule {
     fun retrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
         .baseUrl(BuildConfig.API_BASE_URL)
         .client(client)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .addConverterFactory(json.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
         .build()
 
     @Provides
@@ -124,7 +128,7 @@ object AppModule {
     @Provides
     @Singleton
     fun database(@ApplicationContext context: Context): UserDatabase =
-        Room.databaseBuilder(context, UserDatabase::class.java, "users.db")
+        Room.databaseBuilder(context, UserDatabase::class.java, USER_DATABASE_NAME)
             .addMigrations(UserDatabase.MIGRATION_1_2).build()
 
     @Provides
@@ -186,3 +190,11 @@ object AppModule {
     @Singleton
     fun scheduler(impl: WorkManagerSyncScheduler): SyncScheduler = impl
 }
+
+private const val HTTP_CACHE_DIRECTORY = "http_cache"
+private const val HTTP_CACHE_SIZE_BYTES = 10L * 1024 * 1024
+private const val ACCEPT_HEADER = "Accept"
+private const val AUTHORIZATION_HEADER = "Authorization"
+private const val JSON_MEDIA_TYPE = "application/json"
+private const val BEARER_PREFIX = "Bearer "
+private const val USER_DATABASE_NAME = "users.db"

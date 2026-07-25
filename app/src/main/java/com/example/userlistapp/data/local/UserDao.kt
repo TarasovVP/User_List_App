@@ -12,13 +12,25 @@ private const val SELECT_WITH_LOCAL = """
     LEFT JOIN favorite_users ON users.id = favorite_users.userId
     LEFT JOIN user_notes ON users.id = user_notes.userId
 """
+private const val SELECT_USER_BY_ID = "$SELECT_WITH_LOCAL WHERE users.id = :userId"
+private const val DELETE_FAVORITE =
+    "DELETE FROM favorite_users WHERE userId = :userId"
+private const val DELETE_NOTE =
+    "DELETE FROM user_notes WHERE userId = :userId"
+private const val SELECT_LATEST_SNAPSHOT =
+    "SELECT MAX(remoteUpdatedAt) FROM users"
+private const val DELETE_STALE_USERS = """
+    DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
+    AND id NOT IN (SELECT userId FROM favorite_users)
+    AND id NOT IN (SELECT userId FROM user_notes)
+"""
 
 @Dao
 interface UserDao {
     @Query(SELECT_WITH_LOCAL)
     fun observeUsers(): Flow<List<UserWithLocal>>
 
-    @Query("$SELECT_WITH_LOCAL WHERE users.id = :userId")
+    @Query(SELECT_USER_BY_ID)
     fun observeUser(userId: Int): Flow<UserWithLocal?>
 
     @Upsert
@@ -28,18 +40,14 @@ interface UserDao {
     @Upsert
     suspend fun upsertNote(note: UserNoteEntity)
 
-    @Query("DELETE FROM favorite_users WHERE userId = :userId")
+    @Query(DELETE_FAVORITE)
     suspend fun deleteFavorite(userId: Int)
-    @Query("DELETE FROM user_notes WHERE userId = :userId")
+    @Query(DELETE_NOTE)
     suspend fun deleteNote(userId: Int)
 
-    @Query("SELECT MAX(remoteUpdatedAt) FROM users")
+    @Query(SELECT_LATEST_SNAPSHOT)
     suspend fun latestSnapshotBatchId(): Long?
 
-    @Query(
-        """DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
-        AND id NOT IN (SELECT userId FROM favorite_users)
-        AND id NOT IN (SELECT userId FROM user_notes)"""
-    )
+    @Query(DELETE_STALE_USERS)
     suspend fun deleteStale(snapshotBatchId: Long)
 }

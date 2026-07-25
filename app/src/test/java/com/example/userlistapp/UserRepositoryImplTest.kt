@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.quality.AppQualityMonitor
@@ -225,7 +227,7 @@ private fun entity(id: Int) = UserEntity(
     "e",
     "p",
     "u",
-    "",
+    String.EMPTY,
     "r",
     "c",
     "d",

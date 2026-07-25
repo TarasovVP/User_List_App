@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -110,7 +112,7 @@ private fun entity(id: Int, name: String) = UserEntity(
     "e$id",
     "p",
     "u$id",
-    "",
+    String.EMPTY,
     "user",
     "Company",
     "Dept",

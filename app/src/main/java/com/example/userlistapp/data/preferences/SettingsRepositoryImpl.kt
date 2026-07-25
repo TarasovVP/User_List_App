@@ -17,13 +17,14 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
-val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+val Context.settingsDataStore: DataStore<Preferences> by
+    preferencesDataStore(name = SETTINGS_DATA_STORE_NAME)
 
 class SettingsRepositoryImpl(private val dataStore: DataStore<Preferences>) : SettingsRepository {
     private object Keys {
-        val theme = stringPreferencesKey("theme")
-        val backgroundSync = booleanPreferencesKey("background_sync")
-        val lastSync = longPreferencesKey("last_sync")
+        val theme = stringPreferencesKey(THEME_KEY)
+        val backgroundSync = booleanPreferencesKey(BACKGROUND_SYNC_KEY)
+        val lastSync = longPreferencesKey(LAST_SYNC_KEY)
     }
 
     override val settings: Flow<AppSettings> = dataStore.data
@@ -55,3 +56,8 @@ class SettingsRepositoryImpl(private val dataStore: DataStore<Preferences>) : Se
         dataStore.edit { it[Keys.lastSync] = timestamp }
     }
 }
+
+private const val SETTINGS_DATA_STORE_NAME = "settings"
+private const val THEME_KEY = "theme"
+private const val BACKGROUND_SYNC_KEY = "background_sync"
+private const val LAST_SYNC_KEY = "last_sync"

@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
+import com.example.userlistapp.core.ui.UiAnimationLabels
+import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.feature.users.components.UserAvatar
 import com.example.userlistapp.ui.theme.FavoriteSelectedColor
@@ -99,11 +101,11 @@ fun UserDetailsScreen(
                         IconButton(
                             onClick = onFavorite,
                             enabled = state.canToggleFavorite,
-                            modifier = Modifier.testTag("favorite_button"),
+                            modifier = Modifier.testTag(UiTestTags.FAVORITE_BUTTON),
                         ) {
                             AnimatedContent(
                                 targetState = it.isFavorite,
-                                label = "favorite_icon",
+                                label = UiAnimationLabels.FAVORITE_ICON,
                             ) { isFavorite ->
                                 Icon(
                                     if (isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
@@ -198,7 +200,7 @@ private fun DetailsContent(
             minLines = 3,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("note_field"),
+                .testTag(UiTestTags.NOTE_FIELD),
         )
         user.noteModifiedAt?.let { modifiedAt ->
             val formattedModifiedAt = remember(modifiedAt) {
@@ -216,7 +218,10 @@ private fun DetailsContent(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             if (state.canDelete) {
-                TextButton(onClick = onDeleteNote, modifier = Modifier.testTag("delete_note")) {
+                TextButton(
+                    onClick = onDeleteNote,
+                    modifier = Modifier.testTag(UiTestTags.DELETE_NOTE),
+                ) {
                     Icon(Icons.Default.Delete, null)
                     Text(stringResource(R.string.delete_note))
                 }
@@ -224,7 +229,7 @@ private fun DetailsContent(
             Button(
                 onClick = onSaveNote,
                 enabled = state.canSave,
-                modifier = Modifier.testTag("save_note")
+                modifier = Modifier.testTag(UiTestTags.SAVE_NOTE)
             ) { Text(stringResource(R.string.save_note)) }
         }
     }

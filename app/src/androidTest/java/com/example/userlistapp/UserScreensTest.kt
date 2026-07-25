@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +25,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.userlistapp.core.common.UiText
+import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode
@@ -48,7 +51,7 @@ class UserScreensTest {
 
     @Test
     fun listSearchesUpdatesFavoriteAndExposesNavigationActions() {
-        var query by mutableStateOf("")
+        var query by mutableStateOf(String.EMPTY)
         var opened: Int? = null
         var settings = false
         var users by mutableStateOf(listOf(user(1, "Ada"), user(2, "Grace")))
@@ -78,10 +81,10 @@ class UserScreensTest {
         }
 
         compose.onNodeWithText("Ada User").assertIsDisplayed()
-        compose.onNodeWithTag("favorite_1").performClick()
+        compose.onNodeWithTag(UiTestTags.favorite(1)).performClick()
         compose.onNodeWithContentDescription(context.getString(R.string.favorite)).assertIsDisplayed()
         compose.onNodeWithContentDescription(context.getString(R.string.search_users)).performClick()
-        val search = compose.onNodeWithTag("search")
+        val search = compose.onNodeWithTag(UiTestTags.SEARCH)
         search.performTextInput("Grace")
         search.performImeAction()
         search.assertIsNotFocused()
@@ -94,7 +97,7 @@ class UserScreensTest {
     @Test
     fun detailsUpdatesFavoriteAndPersistsRenderedNoteState() {
         var favorite by mutableStateOf(false)
-        var draft by mutableStateOf("")
+        var draft by mutableStateOf(String.EMPTY)
         var savedNote by mutableStateOf<String?>(null)
         compose.setContent {
             UserListTheme(ThemeMode.LIGHT) {
@@ -114,13 +117,13 @@ class UserScreensTest {
             }
         }
 
-        compose.onNodeWithTag("favorite_button").performClick()
+        compose.onNodeWithTag(UiTestTags.FAVORITE_BUTTON).performClick()
         compose.onNodeWithContentDescription(context.getString(R.string.favorite)).assertIsDisplayed()
-        compose.onNodeWithTag("note_field").performTextInput("Remember this")
-        compose.onNodeWithTag("save_note").assertIsEnabled()
+        compose.onNodeWithTag(UiTestTags.NOTE_FIELD).performTextInput("Remember this")
+        compose.onNodeWithTag(UiTestTags.SAVE_NOTE).assertIsEnabled()
             .performSemanticsAction(SemanticsActions.OnClick)
-        compose.onNodeWithTag("save_note").assertIsNotEnabled()
-        compose.onNodeWithTag("note_field").assertIsDisplayed()
+        compose.onNodeWithTag(UiTestTags.SAVE_NOTE).assertIsNotEnabled()
+        compose.onNodeWithTag(UiTestTags.NOTE_FIELD).assertIsDisplayed()
     }
 
     @Test
@@ -144,9 +147,9 @@ class UserScreensTest {
             }
         }
 
-        compose.onNodeWithTag("delete_note").performScrollTo().performClick()
+        compose.onNodeWithTag(UiTestTags.DELETE_NOTE).performScrollTo().performClick()
 
-        compose.onAllNodesWithTag("delete_note").assertCountEquals(0)
+        compose.onAllNodesWithTag(UiTestTags.DELETE_NOTE).assertCountEquals(0)
     }
 
     @Test
@@ -194,7 +197,7 @@ class UserScreensTest {
         compose.onNodeWithContentDescription(context.getString(R.string.settings)).performClick()
         compose.runOnIdle { assertTrue(settingsOpened) }
         compose.onNodeWithText(context.getString(R.string.guest_title)).assertIsDisplayed()
-        compose.onNodeWithTag("sign_in_open").performClick()
+        compose.onNodeWithTag(UiTestTags.SIGN_IN_OPEN).performClick()
         compose.runOnIdle { assertTrue(opened) }
     }
 
@@ -220,14 +223,14 @@ class UserScreensTest {
 
         val error = context.getString(R.string.error_invalid_credentials)
         compose.onNodeWithText(error).assertIsDisplayed()
-        compose.onNodeWithTag("login_submit").assertIsNotEnabled()
-        compose.onNodeWithTag("login_username").performTextInput("emilys")
+        compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).assertIsNotEnabled()
+        compose.onNodeWithTag(UiTestTags.LOGIN_USERNAME).performTextInput("emilys")
         compose.onAllNodesWithText(error).assertCountEquals(0)
-        val password = compose.onNodeWithTag("login_password")
+        val password = compose.onNodeWithTag(UiTestTags.LOGIN_PASSWORD)
         password.performTextInput("emilyspass")
         compose.onNodeWithContentDescription(context.getString(R.string.show_password)).performClick()
         compose.onNodeWithContentDescription(context.getString(R.string.hide_password)).assertIsDisplayed()
-        compose.onNodeWithTag("login_submit").assertIsEnabled()
+        compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).assertIsEnabled()
         password.performImeAction()
         compose.runOnIdle { assertEquals("emilys" to "emilyspass", submitted) }
     }
@@ -246,10 +249,10 @@ class UserScreensTest {
             }
         }
 
-        compose.onNodeWithTag("login_password").performClick().performImeAction()
+        compose.onNodeWithTag(UiTestTags.LOGIN_PASSWORD).performClick().performImeAction()
 
         compose.runOnIdle { assertEquals(false, submitted) }
-        compose.onNodeWithTag("login_submit").assertIsNotEnabled()
+        compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).assertIsNotEnabled()
     }
 
     @Test
@@ -261,7 +264,7 @@ class UserScreensTest {
                 AccountScreen(
                     state = AuthUiState(
                         session = SessionState.SignedIn(1),
-                        account = Account(1, "emilys", "Emily", "Johnson", "emily@example.com", ""),
+                        account = Account(1, "emilys", "Emily", "Johnson", "emily@example.com", String.EMPTY),
                         localAvatarUri = "content://local/avatar",
                     ),
                     onOpenSignIn = {},
@@ -293,7 +296,7 @@ private fun user(id: Int, name: String, favorite: Boolean = false) = User(
     email = "$name@example.com",
     phone = "123",
     username = name.lowercase(),
-    imageUrl = "",
+    imageUrl = String.EMPTY,
     role = "user",
     companyName = "Company",
     department = "Dept",

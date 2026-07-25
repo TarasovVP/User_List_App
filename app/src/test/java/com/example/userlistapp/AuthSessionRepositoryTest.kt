@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
@@ -129,11 +131,11 @@ private class TestAuthApi(
 ) : AuthApi {
     override suspend fun login(request: LoginRequestDto): AccountDto {
         loginFailure?.let { throw it }
-        return AccountDto(1, request.username, "Emily", "Johnson", "emily@example.com", "")
+        return AccountDto(1, request.username, "Emily", "Johnson", "emily@example.com", String.EMPTY)
     }
 
     override suspend fun getAccount(id: Int): AccountDto {
         accountFailure?.let { throw it }
-        return AccountDto(id, "emilys", "Emily", "Johnson", "emily@example.com", "")
+        return AccountDto(id, "emilys", "Emily", "Johnson", "emily@example.com", String.EMPTY)
     }
 }

@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.Account
@@ -39,7 +41,7 @@ private class CountingAuthRepository : AuthSessionRepository {
     override val localAvatarUri = MutableStateFlow<String?>(null)
     var signInCalls = 0
     val signInResult = AppResult.Success(
-        Account(1, "emilys", "Emily", "User", "emily@example.com", ""),
+        Account(1, "emilys", "Emily", "User", "emily@example.com", String.EMPTY),
     )
 
     override suspend fun signIn(username: String, password: String): AppResult<Account> {

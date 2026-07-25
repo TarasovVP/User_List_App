@@ -1,5 +1,7 @@
 package com.example.userlistapp.feature.account
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,6 +53,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.userlistapp.R
+import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.domain.model.SessionState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,7 +154,7 @@ fun AccountScreen(
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.padding(top = 16.dp)
                         )
-                        Text("@${account.username}")
+                        Text(USERNAME_PREFIX + account.username)
                         Text(account.email)
                         Button(
                             onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
@@ -214,8 +217,8 @@ fun SignInContent(
     onCredentialsChanged: () -> Unit,
     onSubmit: (String, String) -> Unit,
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf(String.EMPTY) }
+    var password by remember { mutableStateOf(String.EMPTY) }
     var passwordVisible by remember { mutableStateOf(false) }
     val canSubmit = !state.isSigningIn && username.isNotBlank() && password.isNotBlank()
     Column(
@@ -235,7 +238,7 @@ fun SignInContent(
             label = { Text(stringResource(R.string.username)) }, singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("login_username"),
+                .testTag(UiTestTags.LOGIN_USERNAME),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
         OutlinedTextField(
@@ -259,7 +262,7 @@ fun SignInContent(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("login_password"),
+                .testTag(UiTestTags.LOGIN_PASSWORD),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
                 if (canSubmit) onSubmit(username, password)
@@ -276,7 +279,7 @@ fun SignInContent(
             enabled = canSubmit,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("login_submit"),
+                .testTag(UiTestTags.LOGIN_SUBMIT),
         ) {
             if (state.isSigningIn) CircularProgressIndicator(Modifier.size(20.dp))
             else Text(stringResource(R.string.sign_in))
@@ -342,7 +345,9 @@ private fun GuestPrompt(onSignIn: () -> Unit) {
         stringResource(R.string.guest_explanation),
         modifier = Modifier.padding(vertical = 16.dp),
     )
-    Button(onClick = onSignIn, modifier = Modifier.testTag("sign_in_open")) {
+    Button(onClick = onSignIn, modifier = Modifier.testTag(UiTestTags.SIGN_IN_OPEN)) {
         Text(stringResource(R.string.sign_in))
     }
 }
+
+private const val USERNAME_PREFIX = "@"

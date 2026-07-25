@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import android.content.res.Configuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -130,7 +132,7 @@ private fun screenshotUser(
     email = "${firstName.lowercase()}@example.com",
     phone = "+1 555 0100",
     username = firstName.lowercase(),
-    imageUrl = "",
+    imageUrl = String.EMPTY,
     role = "admin",
     companyName = "Computing",
     department = "Research",

@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.usecase.ImportLocalAvatarUseCase
@@ -35,7 +37,7 @@ fun sampleUser(
     email = "${firstName.lowercase()}@example.com",
     phone = "123",
     username = firstName.lowercase(),
-    imageUrl = "",
+    imageUrl = String.EMPTY,
     role = "user",
     companyName = "Analytical",
     department = "R&D",

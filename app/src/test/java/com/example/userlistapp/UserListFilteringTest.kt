@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import org.junit.Assert.assertEquals
@@ -32,7 +34,7 @@ class UserListFilteringTest {
             listOf(1, 2),
             filterAndSortUsers(
                 users,
-                "",
+                String.EMPTY,
                 UserSort.NAME_ASCENDING,
                 favoritesOnly = false
             ).map { it.id },
@@ -41,7 +43,7 @@ class UserListFilteringTest {
             listOf(2, 1),
             filterAndSortUsers(
                 users,
-                "",
+                String.EMPTY,
                 UserSort.NAME_DESCENDING,
                 favoritesOnly = false
             ).map { it.id },

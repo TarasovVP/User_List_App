@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.Account
@@ -45,7 +47,7 @@ class AuthAndProtectionTest {
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
             runCurrent()
 
-            viewModel.signIn("", "")
+            viewModel.signIn(String.EMPTY, String.EMPTY)
             advanceUntilIdle()
 
             assertEquals(0, repository.loginCalls)
@@ -181,7 +183,7 @@ private class FakeAuthRepository(
             "Emily",
             "User",
             "emily@example.com",
-            ""
+            String.EMPTY
         )
     ),
 ) : AuthSessionRepository {
@@ -206,7 +208,7 @@ private class FakeAuthRepository(
     override suspend fun loadAccount(userId: Int): AppResult<Account> {
         loadAccountCalls++
         return AppResult.Success(
-            Account(userId, "emilys", "Emily", "User", "emily@example.com", ""),
+            Account(userId, "emilys", "Emily", "User", "emily@example.com", String.EMPTY),
         )
     }
 

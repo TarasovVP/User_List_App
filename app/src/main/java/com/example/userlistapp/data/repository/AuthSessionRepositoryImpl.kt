@@ -30,7 +30,8 @@ import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import java.io.IOException
 
-val Context.authSessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_session")
+val Context.authSessionDataStore: DataStore<Preferences> by
+    preferencesDataStore(name = AUTH_SESSION_DATA_STORE_NAME)
 
 class AuthSessionRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
@@ -40,8 +41,8 @@ class AuthSessionRepositoryImpl(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthSessionRepository {
     private object Keys {
-        val authenticatedUserId = intPreferencesKey("simulated_authenticated_user_id")
-        val localAccountAvatarUri = stringPreferencesKey("local_account_avatar_uri")
+        val authenticatedUserId = intPreferencesKey(AUTHENTICATED_USER_ID_KEY)
+        val localAccountAvatarUri = stringPreferencesKey(LOCAL_ACCOUNT_AVATAR_URI_KEY)
     }
 
     override val sessionState: Flow<SessionState> = dataStore.data
@@ -182,3 +183,7 @@ class AuthSessionRepositoryImpl(
 }
 
 private fun AccountDto.toDomain() = Account(id, username, firstName, lastName, email, image)
+
+private const val AUTH_SESSION_DATA_STORE_NAME = "auth_session"
+private const val AUTHENTICATED_USER_ID_KEY = "simulated_authenticated_user_id"
+private const val LOCAL_ACCOUNT_AVATAR_URI_KEY = "local_account_avatar_uri"

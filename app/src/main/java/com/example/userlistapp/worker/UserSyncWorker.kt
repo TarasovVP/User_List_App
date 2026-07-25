@@ -31,7 +31,7 @@ class UserSyncWorker @AssistedInject constructor(
                 result.error == AppError.AuthenticationRequired -> Result.success()
                 shouldRetry(result.error, runAttemptCount) -> Result.retry()
                 else -> {
-                    Log.e(TAG, "Sync failed permanently: ${result.error}")
+                    Log.e(TAG, SYNC_FAILURE_LOG_PREFIX + result.error)
                     Result.failure()
                 }
             }
@@ -41,6 +41,7 @@ class UserSyncWorker @AssistedInject constructor(
         const val UNIQUE_NAME = "user-sync"
         internal const val MAX_ATTEMPTS = 4
         private const val TAG = "UserSyncWorker"
+        private const val SYNC_FAILURE_LOG_PREFIX = "Sync failed permanently: "
     }
 }
 

@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import app.cash.turbine.test
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
@@ -215,11 +217,11 @@ private object SignedInSessionRepository : AuthSessionRepository {
     override val sessionState: Flow<SessionState> = MutableStateFlow(SessionState.SignedIn(1))
     override val localAvatarUri: Flow<String?> = MutableStateFlow(null)
     override suspend fun signIn(username: String, password: String) = AppResult.Success(
-        Account(1, username, "Test", "User", "test@example.com", ""),
+        Account(1, username, "Test", "User", "test@example.com", String.EMPTY),
     )
 
     override suspend fun loadAccount(userId: Int) = AppResult.Success(
-        Account(userId, "test", "Test", "User", "test@example.com", ""),
+        Account(userId, "test", "Test", "User", "test@example.com", String.EMPTY),
     )
 
     override suspend fun signOut() = AppResult.Success(Unit)

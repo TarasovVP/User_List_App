@@ -1,5 +1,7 @@
 package com.example.userlistapp.feature.users.details
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,7 +29,7 @@ import javax.inject.Inject
 
 data class UserDetailsUiState(
     val user: User? = null,
-    val noteDraft: String = "",
+    val noteDraft: String = String.EMPTY,
     val isSaving: Boolean = false,
     val isLoading: Boolean = true,
 ) {

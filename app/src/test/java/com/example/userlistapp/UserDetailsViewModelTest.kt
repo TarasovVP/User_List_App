@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.example.userlistapp.core.common.AppError
@@ -89,7 +91,7 @@ class UserDetailsViewModelTest {
             viewModel.deleteNote()
             advanceUntilIdle()
 
-            assertEquals("", viewModel.uiState.value.noteDraft)
+            assertEquals(String.EMPTY, viewModel.uiState.value.noteDraft)
             assertFalse(viewModel.uiState.value.canDelete)
 
             repository.emit(repository.user.value.copy(note = "restored"))

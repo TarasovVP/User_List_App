@@ -4,6 +4,9 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface UserApi {
-    @GET("users")
-    suspend fun getUsers(@Query("limit") limit: Int): UsersResponseDto
+    @GET(USERS_PATH)
+    suspend fun getUsers(@Query(LIMIT_QUERY_PARAMETER) limit: Int): UsersResponseDto
 }
+
+private const val USERS_PATH = "users"
+private const val LIMIT_QUERY_PARAMETER = "limit"

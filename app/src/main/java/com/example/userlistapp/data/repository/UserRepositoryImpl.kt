@@ -36,33 +36,33 @@ class UserRepositoryImpl(
 
     override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
         val trace = qualityMonitor.startTrace(USERS_REFRESH_TRACE)
-        trace.putAttribute("trigger", source.qualityValue)
-        qualityMonitor.setCustomKey("operation", USERS_REFRESH_TRACE)
-        qualityMonitor.setCustomKey("refresh_trigger", source.qualityValue)
-        qualityMonitor.log("users_refresh_started trigger=${source.qualityValue}")
+        trace.putAttribute(TRIGGER_ATTRIBUTE, source.qualityValue)
+        qualityMonitor.setCustomKey(OPERATION_KEY, USERS_REFRESH_TRACE)
+        qualityMonitor.setCustomKey(REFRESH_TRIGGER_KEY, source.qualityValue)
+        qualityMonitor.log(REFRESH_STARTED_LOG_PREFIX + source.qualityValue)
         return try {
             val remoteUsers = remote.getUsers()
-            trace.putMetric("users_received", remoteUsers.size.toLong())
+            trace.putMetric(USERS_RECEIVED_METRIC, remoteUsers.size.toLong())
             val entities = withContext(mappingDispatcher) { remoteUsers.map(UserDto::toEntity) }
             require(entities.map { it.id }.distinct().size == entities.size) {
-                "Duplicate user ids"
+                DUPLICATE_USER_IDS_ERROR
             }
             local.replaceRemoteSnapshot(entities)
-            trace.putAttribute("result", "success")
-            qualityMonitor.setCustomKey("refresh_result", "success")
-            qualityMonitor.log("users_refresh_succeeded count=${entities.size}")
+            trace.putAttribute(RESULT_ATTRIBUTE, SUCCESS_VALUE)
+            qualityMonitor.setCustomKey(REFRESH_RESULT_KEY, SUCCESS_VALUE)
+            qualityMonitor.log(REFRESH_SUCCEEDED_LOG_PREFIX + entities.size)
             AppResult.Success(Unit)
         } catch (cancelled: CancellationException) {
-            trace.putAttribute("result", "cancelled")
+            trace.putAttribute(RESULT_ATTRIBUTE, CANCELLED_VALUE)
             throw cancelled
         } catch (error: Throwable) {
             val appError = error.toAppError()
             val errorType = appError.qualityValue
-            trace.putAttribute("result", "failure")
-            trace.putAttribute("error_type", errorType)
-            qualityMonitor.setCustomKey("refresh_result", "failure")
-            qualityMonitor.setCustomKey("refresh_error_type", errorType)
-            qualityMonitor.log("users_refresh_failed type=$errorType")
+            trace.putAttribute(RESULT_ATTRIBUTE, FAILURE_VALUE)
+            trace.putAttribute(ERROR_TYPE_ATTRIBUTE, errorType)
+            qualityMonitor.setCustomKey(REFRESH_RESULT_KEY, FAILURE_VALUE)
+            qualityMonitor.setCustomKey(REFRESH_ERROR_TYPE_KEY, errorType)
+            qualityMonitor.log(REFRESH_FAILED_LOG_PREFIX + errorType)
             if (appError.shouldReportAsNonFatal) qualityMonitor.recordNonFatal(error)
             AppResult.Failure(appError)
         } finally {
@@ -100,20 +100,43 @@ private val RefreshSource.qualityValue: String get() = name.lowercase()
 
 private val AppError.qualityValue: String
     get() = when (this) {
-        AppError.Network -> "network"
-        is AppError.Http -> "http_${code}"
-        AppError.InvalidData -> "invalid_data"
-        AppError.InvalidNote -> "invalid_note"
-        AppError.AuthenticationRequired -> "authentication_required"
-        AppError.InvalidCredentials -> "invalid_credentials"
-        AppError.Storage -> "storage"
-        AppError.Unknown -> "unknown"
+        AppError.Network -> NETWORK_ERROR_VALUE
+        is AppError.Http -> HTTP_ERROR_PREFIX + code
+        AppError.InvalidData -> INVALID_DATA_ERROR_VALUE
+        AppError.InvalidNote -> INVALID_NOTE_ERROR_VALUE
+        AppError.AuthenticationRequired -> AUTHENTICATION_REQUIRED_ERROR_VALUE
+        AppError.InvalidCredentials -> INVALID_CREDENTIALS_ERROR_VALUE
+        AppError.Storage -> STORAGE_ERROR_VALUE
+        AppError.Unknown -> UNKNOWN_ERROR_VALUE
     }
 
 private val AppError.shouldReportAsNonFatal: Boolean
     get() = this == AppError.InvalidData || this == AppError.Storage || this == AppError.Unknown
 
 private const val USERS_REFRESH_TRACE = "users_refresh"
+private const val TRIGGER_ATTRIBUTE = "trigger"
+private const val RESULT_ATTRIBUTE = "result"
+private const val ERROR_TYPE_ATTRIBUTE = "error_type"
+private const val USERS_RECEIVED_METRIC = "users_received"
+private const val OPERATION_KEY = "operation"
+private const val REFRESH_TRIGGER_KEY = "refresh_trigger"
+private const val REFRESH_RESULT_KEY = "refresh_result"
+private const val REFRESH_ERROR_TYPE_KEY = "refresh_error_type"
+private const val SUCCESS_VALUE = "success"
+private const val CANCELLED_VALUE = "cancelled"
+private const val FAILURE_VALUE = "failure"
+private const val NETWORK_ERROR_VALUE = "network"
+private const val HTTP_ERROR_PREFIX = "http_"
+private const val INVALID_DATA_ERROR_VALUE = "invalid_data"
+private const val INVALID_NOTE_ERROR_VALUE = "invalid_note"
+private const val AUTHENTICATION_REQUIRED_ERROR_VALUE = "authentication_required"
+private const val INVALID_CREDENTIALS_ERROR_VALUE = "invalid_credentials"
+private const val STORAGE_ERROR_VALUE = "storage"
+private const val UNKNOWN_ERROR_VALUE = "unknown"
+private const val REFRESH_STARTED_LOG_PREFIX = "users_refresh_started trigger="
+private const val REFRESH_SUCCEEDED_LOG_PREFIX = "users_refresh_succeeded count="
+private const val REFRESH_FAILED_LOG_PREFIX = "users_refresh_failed type="
+private const val DUPLICATE_USER_IDS_ERROR = "Duplicate user ids"
 
 fun UserDto.toEntity(): UserEntity = UserEntity(
     id = id,

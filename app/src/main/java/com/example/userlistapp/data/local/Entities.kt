@@ -6,7 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "users")
+@Entity(tableName = USERS_TABLE)
 data class UserEntity(
     @PrimaryKey val id: Int,
     val firstName: String,
@@ -24,30 +24,30 @@ data class UserEntity(
     val city: String,
     val state: String,
     val country: String,
-    @ColumnInfo(name = "remoteUpdatedAt") val snapshotBatchId: Long = 0,
+    @ColumnInfo(name = REMOTE_UPDATED_AT_COLUMN) val snapshotBatchId: Long = 0,
 )
 
 @Entity(
-    tableName = "favorite_users",
+    tableName = FAVORITE_USERS_TABLE,
     foreignKeys = [ForeignKey(
         entity = UserEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["userId"],
+        parentColumns = [ID_COLUMN],
+        childColumns = [USER_ID_COLUMN],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("userId")],
+    indices = [Index(USER_ID_COLUMN)],
 )
 data class FavoriteEntity(@PrimaryKey val userId: Int, val createdAt: Long)
 
 @Entity(
-    tableName = "user_notes",
+    tableName = USER_NOTES_TABLE,
     foreignKeys = [ForeignKey(
         entity = UserEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["userId"],
+        parentColumns = [ID_COLUMN],
+        childColumns = [USER_ID_COLUMN],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("userId")],
+    indices = [Index(USER_ID_COLUMN)],
 )
 data class UserNoteEntity(@PrimaryKey val userId: Int, val note: String, val modifiedAt: Long)
 
@@ -68,8 +68,16 @@ data class UserWithLocal(
     val city: String,
     val state: String,
     val country: String,
-    @ColumnInfo(name = "remoteUpdatedAt") val snapshotBatchId: Long,
-    @ColumnInfo(name = "favoriteCreatedAt") val favoriteCreatedAt: Long?,
+    @ColumnInfo(name = REMOTE_UPDATED_AT_COLUMN) val snapshotBatchId: Long,
+    @ColumnInfo(name = FAVORITE_CREATED_AT_COLUMN) val favoriteCreatedAt: Long?,
     val note: String?,
     val noteModifiedAt: Long?,
 )
+
+internal const val USERS_TABLE = "users"
+internal const val FAVORITE_USERS_TABLE = "favorite_users"
+internal const val USER_NOTES_TABLE = "user_notes"
+internal const val ID_COLUMN = "id"
+internal const val USER_ID_COLUMN = "userId"
+internal const val REMOTE_UPDATED_AT_COLUMN = "remoteUpdatedAt"
+internal const val FAVORITE_CREATED_AT_COLUMN = "favoriteCreatedAt"

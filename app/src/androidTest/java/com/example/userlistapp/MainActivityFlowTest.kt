@@ -1,5 +1,7 @@
 package com.example.userlistapp
 
+import com.example.userlistapp.core.common.EMPTY
+
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -14,6 +16,7 @@ import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.NoOpAppQualityMonitor
+import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.di.AppModule
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
@@ -88,20 +91,20 @@ class MainActivityFlowTest {
         val note = "Met at the computing conference"
 
         compose.waitForText(context.getString(R.string.guest_title))
-        compose.onNodeWithTag("sign_in_open").performClick()
-        compose.onNodeWithTag("login_username").performTextInput("emilys")
-        compose.onNodeWithTag("login_password").performTextInput("emilyspass")
-        compose.onNodeWithTag("login_submit").performClick()
+        compose.onNodeWithTag(UiTestTags.SIGN_IN_OPEN).performClick()
+        compose.onNodeWithTag(UiTestTags.LOGIN_USERNAME).performTextInput("emilys")
+        compose.onNodeWithTag(UiTestTags.LOGIN_PASSWORD).performTextInput("emilyspass")
+        compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).performClick()
 
         compose.waitForText(context.getString(R.string.users_title))
         compose.onNodeWithContentDescription(context.getString(R.string.search_users)).performClick()
-        compose.onNodeWithTag("search").performTextInput("Grace")
+        compose.onNodeWithTag(UiTestTags.SEARCH).performTextInput("Grace")
         compose.waitForText("Grace Hopper")
-        compose.onNodeWithTag("user_2").performClick()
+        compose.onNodeWithTag(UiTestTags.user(2)).performClick()
 
         compose.waitForText("Grace Hopper")
-        compose.onNodeWithTag("note_field").performScrollTo().performTextInput(note)
-        compose.onNodeWithTag("save_note")
+        compose.onNodeWithTag(UiTestTags.NOTE_FIELD).performScrollTo().performTextInput(note)
+        compose.onNodeWithTag(UiTestTags.SAVE_NOTE)
             .performScrollTo()
             .assertIsDisplayed()
             .assertIsEnabled()
@@ -111,7 +114,7 @@ class MainActivityFlowTest {
             assertEquals(note, users.users.value.single { it.id == 2 }.note)
         }
 
-        compose.onNodeWithTag("note_field")
+        compose.onNodeWithTag(UiTestTags.NOTE_FIELD)
             .assertIsDisplayed()
             .assertTextContains(note)
     }
@@ -132,7 +135,7 @@ private class FakeAuthSessionRepository : AuthSessionRepository {
         firstName = "Emily",
         lastName = "Johnson",
         email = "emily@example.com",
-        remoteImageUrl = "",
+        remoteImageUrl = String.EMPTY,
     )
 
     override suspend fun signIn(username: String, password: String): AppResult<Account> {
@@ -216,7 +219,7 @@ private fun uiTestUser(id: Int, firstName: String, lastName: String) = User(
     email = "$firstName@example.com",
     phone = "123",
     username = firstName.lowercase(),
-    imageUrl = "",
+    imageUrl = String.EMPTY,
     role = "user",
     companyName = "Computing",
     department = "Research",
