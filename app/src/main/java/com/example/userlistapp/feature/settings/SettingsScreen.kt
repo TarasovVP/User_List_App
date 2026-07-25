@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -168,6 +169,12 @@ fun SettingsScreen(
                     Row(
                         Modifier
                             .fillMaxWidth()
+                            .toggleable(
+                                value = state.settings.backgroundSyncEnabled,
+                                role = Role.Switch,
+                                onValueChange = onSync,
+                            )
+                            .semantics(mergeDescendants = true) {}
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -178,7 +185,7 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = state.settings.backgroundSyncEnabled,
-                            onCheckedChange = onSync,
+                            onCheckedChange = null,
                             thumbContent = {
                                 Spacer(Modifier.size(16.dp))
                             },

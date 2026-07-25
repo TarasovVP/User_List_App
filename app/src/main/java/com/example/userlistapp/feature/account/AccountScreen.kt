@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -113,24 +114,24 @@ fun AccountScreen(
                                 false
                             )
                         }
+                        val avatarClickLabel = stringResource(
+                            if (state.localAvatarUri == null) R.string.choose_local_photo else R.string.change_local_photo
+                        )
                         Box(Modifier.size(128.dp)) {
                             AsyncImage(
                                 model = state.localAvatarUri?.takeUnless { localImageFailed }
                                     ?: account.remoteImageUrl,
-                                contentDescription = stringResource(
-                                    if (state.localAvatarUri == null) {
-                                        R.string.choose_local_photo
-                                    } else {
-                                        R.string.change_local_photo
-                                    },
-                                ),
+                                contentDescription = avatarClickLabel,
                                 onError = {
                                     if (state.localAvatarUri != null) localImageFailed = true
                                 },
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(CircleShape)
-                                    .clickable {
+                                    .clickable(
+                                        role = Role.Button,
+                                        onClickLabel = avatarClickLabel,
+                                    ) {
                                         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                     },
                             )

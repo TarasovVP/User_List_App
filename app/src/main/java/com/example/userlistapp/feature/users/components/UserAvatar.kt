@@ -11,7 +11,7 @@ import coil3.request.crossfade
 import com.example.userlistapp.R
 
 @Composable
-fun UserAvatar(url: String, description: String, modifier: Modifier = Modifier) {
+fun UserAvatar(url: String, description: String?, modifier: Modifier = Modifier) {
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(url)

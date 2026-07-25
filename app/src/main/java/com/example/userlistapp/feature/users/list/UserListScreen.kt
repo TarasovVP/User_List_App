@@ -1,6 +1,7 @@
 package com.example.userlistapp.feature.users.list
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -160,38 +163,45 @@ fun UserListScreen(
                     }
                 },
                 title = {
-                    if (searchActive) {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                            if (searchValue.text.isEmpty()) {
-                                Text(
-                                    stringResource(R.string.search_users),
-                                    color = Color.Gray,
-                                    style = MaterialTheme.typography.titleMedium,
+                    AnimatedContent(
+                        targetState = searchActive,
+                        label = "search_title",
+                    ) { active ->
+                        if (active) {
+                            val searchLabel = stringResource(R.string.search_users)
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                                if (searchValue.text.isEmpty()) {
+                                    Text(
+                                        searchLabel,
+                                        color = Color.Gray,
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                }
+                                BasicTextField(
+                                    value = searchValue,
+                                    onValueChange = { value ->
+                                        searchValue = value
+                                        onQuery(value.text)
+                                    },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                    keyboardActions = KeyboardActions(onSearch = {
+                                        focusManager.clearFocus()
+                                        keyboard?.hide()
+                                    }),
+                                    textStyle = MaterialTheme.typography.titleMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(searchFocusRequester)
+                                        .testTag("search")
+                                        .semantics { contentDescription = searchLabel },
                                 )
                             }
-                            BasicTextField(
-                                value = searchValue,
-                                onValueChange = { value ->
-                                    searchValue = value
-                                    onQuery(value.text)
-                                },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(onSearch = {
-                                    focusManager.clearFocus()
-                                    keyboard?.hide()
-                                }),
-                                textStyle = MaterialTheme.typography.titleMedium.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(searchFocusRequester)
-                                    .testTag("search"),
-                            )
+                        } else {
+                            Text(stringResource(R.string.users_title))
                         }
-                    } else {
-                        Text(stringResource(R.string.users_title))
                     }
                 },
                 actions = {
@@ -269,7 +279,9 @@ fun UserListScreen(
                                 UserCard(
                                     user,
                                     onClick = { onUser(user.id) },
-                                    onFavorite = { onFavorite(user) })
+                                    onFavorite = { onFavorite(user) },
+                                    modifier = Modifier.animateItem(),
+                                )
                             }
                         }
                     }
@@ -353,7 +365,7 @@ private fun UserCard(
         .fillMaxWidth()
         .testTag("user_${user.id}")) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            UserAvatar(user.imageUrl, user.fullName, Modifier
+            UserAvatar(user.imageUrl, null, Modifier
                 .size(72.dp)
                 .clip(CircleShape))
             Column(Modifier
@@ -369,15 +381,16 @@ private fun UserCard(
                         onClick = onFavorite,
                         modifier = Modifier.testTag("favorite_${user.id}")
                     ) {
-                        Icon(
-                            imageVector = if (user.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
-                            contentDescription = stringResource(if (user.isFavorite) R.string.favorite else R.string.not_favorite),
-                            tint = if (user.isFavorite) {
-                                FavoriteSelectedColor
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
+                        AnimatedContent(
+                            targetState = user.isFavorite,
+                            label = "favorite_icon",
+                        ) { isFavorite ->
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
+                                contentDescription = stringResource(if (isFavorite) R.string.favorite else R.string.not_favorite),
+                                tint = if (isFavorite) FavoriteSelectedColor else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 }
                 Text(user.email, maxLines = 1, overflow = TextOverflow.Ellipsis)

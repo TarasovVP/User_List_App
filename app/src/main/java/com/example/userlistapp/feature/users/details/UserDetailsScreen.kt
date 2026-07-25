@@ -1,5 +1,6 @@
 package com.example.userlistapp.feature.users.details
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -99,15 +101,16 @@ fun UserDetailsScreen(
                             enabled = state.canToggleFavorite,
                             modifier = Modifier.testTag("favorite_button"),
                         ) {
-                            Icon(
-                                if (it.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
-                                stringResource(if (it.isFavorite) R.string.favorite else R.string.not_favorite),
-                                tint = if (it.isFavorite) {
-                                    FavoriteSelectedColor
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                            )
+                            AnimatedContent(
+                                targetState = it.isFavorite,
+                                label = "favorite_icon",
+                            ) { isFavorite ->
+                                Icon(
+                                    if (isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
+                                    stringResource(if (isFavorite) R.string.favorite else R.string.not_favorite),
+                                    tint = if (isFavorite) FavoriteSelectedColor else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                     }
                 },
@@ -173,7 +176,7 @@ private fun DetailsContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        UserAvatar(user.imageUrl, user.fullName, Modifier
+        UserAvatar(user.imageUrl, null, Modifier
             .size(160.dp)
             .clip(CircleShape))
         Text(user.fullName, style = MaterialTheme.typography.headlineMedium)
@@ -234,7 +237,8 @@ private fun Detail(label: String, value: String) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) {},
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Text(
