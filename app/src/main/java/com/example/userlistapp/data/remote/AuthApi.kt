@@ -17,6 +17,7 @@ data class AccountDto(
     val lastName: String = "",
     val email: String = "",
     val image: String = "",
+    val accessToken: String = "",
 )
 
 interface AuthApi {

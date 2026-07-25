@@ -15,6 +15,7 @@ import com.example.userlistapp.core.common.IoDispatcher
 import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
+import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.LoginRequestDto
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -34,11 +36,13 @@ class AuthSessionRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
     private val api: AuthApi,
     private val avatarStorage: LocalAvatarStorage,
+    private val tokenHolder: AuthTokenHolder,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthSessionRepository {
     private object Keys {
         val authenticatedUserId = intPreferencesKey("simulated_authenticated_user_id")
         val localAccountAvatarUri = stringPreferencesKey("local_account_avatar_uri")
+        val accessToken = stringPreferencesKey("access_token")
     }
 
     override val sessionState: Flow<SessionState> = dataStore.data
@@ -49,7 +53,10 @@ class AuthSessionRepositoryImpl(
                 throw error
             }
         }
-        .map { it[Keys.authenticatedUserId]?.let(SessionState::SignedIn) ?: SessionState.SignedOut }
+        .map { prefs ->
+            tokenHolder.accessToken = prefs[Keys.accessToken]
+            prefs[Keys.authenticatedUserId]?.let(SessionState::SignedIn) ?: SessionState.SignedOut
+        }
 
     override val localAvatarUri: Flow<String?> = dataStore.data
         .catch { error ->
@@ -66,9 +73,16 @@ class AuthSessionRepositoryImpl(
         password: String,
     ): AppResult<Account> = withContext(ioDispatcher) {
         try {
-            val account = api.login(LoginRequestDto(username.trim(), password)).toDomain()
+            val dto = api.login(LoginRequestDto(username.trim(), password))
+            val account = dto.toDomain()
             if (account.id <= 0) return@withContext AppResult.Failure(AppError.InvalidData)
-            dataStore.edit { it[Keys.authenticatedUserId] = account.id }
+            dataStore.edit { prefs ->
+                prefs[Keys.authenticatedUserId] = account.id
+                if (dto.accessToken.isNotEmpty()) {
+                    prefs[Keys.accessToken] = dto.accessToken
+                    tokenHolder.accessToken = dto.accessToken
+                }
+            }
             AppResult.Success(account)
         } catch (error: CancellationException) {
             throw error
@@ -80,6 +94,8 @@ class AuthSessionRepositoryImpl(
             )
         } catch (error: IOException) {
             AppResult.Failure(AppError.Network)
+        } catch (_: SerializationException) {
+            AppResult.Failure(AppError.InvalidData)
         } catch (_: Exception) {
             AppResult.Failure(AppError.Unknown)
         }
@@ -104,6 +120,8 @@ class AuthSessionRepositoryImpl(
                 }
             } catch (error: IOException) {
                 AppResult.Failure(AppError.Network)
+            } catch (_: SerializationException) {
+                AppResult.Failure(AppError.InvalidData)
             } catch (_: Exception) {
                 AppResult.Failure(AppError.Unknown)
             }
@@ -116,7 +134,9 @@ class AuthSessionRepositoryImpl(
                 localAvatarUri = it[Keys.localAccountAvatarUri]
                 it.remove(Keys.authenticatedUserId)
                 it.remove(Keys.localAccountAvatarUri)
+                it.remove(Keys.accessToken)
             }
+            tokenHolder.accessToken = null
             localAvatarUri?.let(avatarStorage::delete)
             AppResult.Success(Unit)
         } catch (error: CancellationException) {

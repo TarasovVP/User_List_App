@@ -18,6 +18,7 @@ import com.example.userlistapp.data.preferences.settingsDataStore
 import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.repository.authSessionDataStore
 import com.example.userlistapp.data.remote.AuthApi
+import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
 import com.example.userlistapp.data.remote.UserApi
 import com.example.userlistapp.data.remote.UserRemoteDataSource
@@ -35,6 +36,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
+import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -71,19 +73,31 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun okHttp(): OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
+    fun authTokenHolder(): AuthTokenHolder = AuthTokenHolder()
+
+    @Provides
+    @Singleton
+    fun okHttp(
+        @ApplicationContext context: Context,
+        tokenHolder: AuthTokenHolder,
+    ): OkHttpClient = OkHttpClient.Builder()
+        .cache(Cache(File(context.cacheDir, "http_cache"), 10L * 1024 * 1024))
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .addInterceptor { chain ->
-            chain.proceed(
-                chain.request().newBuilder().header("Accept", "application/json").build()
-            )
+            val request = chain.request().newBuilder()
+                .header("Accept", "application/json")
+                .apply { tokenHolder.accessToken?.let { header("Authorization", "Bearer $it") } }
+                .build()
+            chain.proceed(request)
         }
         .apply {
             if (BuildConfig.DEBUG) addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             })
-        }.build()
+        }
+        .build()
 
     @Provides
     @Singleton
@@ -155,9 +169,10 @@ object AppModule {
         @AuthDataStore dataStore: DataStore<Preferences>,
         api: AuthApi,
         avatarStorage: LocalAvatarStorage,
+        tokenHolder: AuthTokenHolder,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): AuthSessionRepository =
-        AuthSessionRepositoryImpl(dataStore, api, avatarStorage, ioDispatcher)
+        AuthSessionRepositoryImpl(dataStore, api, avatarStorage, tokenHolder, ioDispatcher)
 
     @Provides
     @Singleton
