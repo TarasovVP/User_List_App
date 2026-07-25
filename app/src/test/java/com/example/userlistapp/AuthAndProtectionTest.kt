@@ -16,6 +16,7 @@ import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.worker.SyncCoordinator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -66,6 +67,23 @@ class AuthAndProtectionTest {
             assertEquals(SessionState.SignedIn(1), viewModel.uiState.value.session)
             assertEquals("Emily User", viewModel.uiState.value.account?.fullName)
             assertNull(viewModel.uiState.value.loginError)
+        }
+
+    @Test
+    fun `successful login cancels redundant account load started by session emission`() =
+        runTest(main.dispatcher) {
+            val repository = FakeAuthRepository()
+            repository.yieldAfterSessionUpdate = true
+            val viewModel = authViewModel(repository)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.uiState.collect()
+            }
+
+            viewModel.signIn("user", "password")
+            advanceUntilIdle()
+
+            assertEquals(0, repository.loadAccountCalls)
+            assertEquals("Emily User", viewModel.uiState.value.account?.fullName)
         }
 
     @Test
@@ -171,6 +189,8 @@ private class FakeAuthRepository(
     var loginCalls = 0
     var signOutCalls = 0
     var suspendLogin = false
+    var yieldAfterSessionUpdate = false
+    var loadAccountCalls = 0
     override val sessionState: Flow<SessionState> = session
     override val localAvatarUri: Flow<String?> = avatar
     override suspend fun signIn(username: String, password: String): AppResult<Account> {
@@ -178,11 +198,16 @@ private class FakeAuthRepository(
         if (suspendLogin) awaitCancellation()
         if (loginResult is AppResult.Success) session.value =
             SessionState.SignedIn((loginResult as AppResult.Success).value.id)
+        if (yieldAfterSessionUpdate) yield()
         return loginResult
     }
 
-    override suspend fun loadAccount(userId: Int) =
-        AppResult.Success(Account(userId, "emilys", "Emily", "User", "emily@example.com", ""))
+    override suspend fun loadAccount(userId: Int): AppResult<Account> {
+        loadAccountCalls++
+        return AppResult.Success(
+            Account(userId, "emilys", "Emily", "User", "emily@example.com", ""),
+        )
+    }
 
     override suspend fun signOut(): AppResult<Unit> {
         signOutCalls++

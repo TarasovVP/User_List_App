@@ -3,6 +3,7 @@ package com.example.userlistapp.data.preferences
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.util.logging.Logger
 
 class LocalAvatarStorage(
     private val directory: File,
@@ -30,10 +31,13 @@ class LocalAvatarStorage(
         val uri = runCatching { java.net.URI(value) }.getOrNull() ?: return
         if (uri.scheme != "file") return
         val file = runCatching { File(uri).canonicalFile }.getOrNull() ?: return
-        if (file.parentFile == directory.canonicalFile) file.delete()
+        if (file.parentFile == directory.canonicalFile && file.exists() && !file.delete()) {
+            logger.warning("Could not delete local avatar: ${file.absolutePath}")
+        }
     }
 
     companion object {
         const val DIRECTORY_NAME = "account_avatars"
+        private val logger = Logger.getLogger(LocalAvatarStorage::class.java.name)
     }
 }

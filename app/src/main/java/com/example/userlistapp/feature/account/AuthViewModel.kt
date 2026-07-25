@@ -49,6 +49,7 @@ class AuthViewModel @Inject constructor(
 ) : ViewModel() {
     private val operation = MutableStateFlow(OperationState())
     private var signInJob: Job? = null
+    private var loadAccountJob: Job? = null
     private val sessionState = observeSession()
         .stateIn(viewModelScope, SharingStarted.Eagerly, SessionState.Initializing)
 
@@ -73,7 +74,10 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             sessionState.collect { session ->
                 if (session is SessionState.SignedIn && operation.value.account?.id != session.userId) {
-                    loadAccount(session.userId)
+                    startLoadingAccount(session.userId)
+                } else if (session is SessionState.SignedOut) {
+                    loadAccountJob?.cancel()
+                    loadAccountJob = null
                 }
             }
         }
@@ -82,31 +86,44 @@ class AuthViewModel @Inject constructor(
     fun signIn(username: String, password: String) {
         if (signInJob?.isActive == true) return
         signInJob = viewModelScope.launch {
+            var completed = false
             try {
                 operation.update { it.copy(signingIn = true, loginError = null) }
                 when (val result = signInUseCase(username, password)) {
-                    is AppResult.Success -> operation.update {
-                        it.copy(account = result.value, signingIn = false)
+                    is AppResult.Success -> {
+                        loadAccountJob?.cancel()
+                        loadAccountJob = null
+                        operation.update {
+                            it.copy(
+                                account = result.value,
+                                signingIn = false,
+                                loadingAccount = false,
+                                accountError = null,
+                            )
+                        }
                     }
 
                     is AppResult.Failure -> operation.update {
                         it.copy(signingIn = false, loginError = result.error.toUiText())
                     }
                 }
+                completed = true
             } finally {
-                operation.update { it.copy(signingIn = false) }
+                if (!completed) operation.update { it.copy(signingIn = false) }
             }
         }
     }
 
     fun retryAccount() {
         val signedIn = uiState.value.session as? SessionState.SignedIn ?: return
-        viewModelScope.launch { loadAccount(signedIn.userId) }
+        startLoadingAccount(signedIn.userId)
     }
 
     fun signOut() {
         val inFlightSignIn = signInJob
         signInJob = null
+        loadAccountJob?.cancel()
+        loadAccountJob = null
         viewModelScope.launch {
             inFlightSignIn?.cancelAndJoin()
             signOutUseCase()
@@ -142,6 +159,11 @@ class AuthViewModel @Inject constructor(
 
     fun clearAvatarError() {
         operation.update { it.copy(avatarError = null) }
+    }
+
+    private fun startLoadingAccount(userId: Int) {
+        loadAccountJob?.cancel()
+        loadAccountJob = viewModelScope.launch { loadAccount(userId) }
     }
 
     private suspend fun loadAccount(userId: Int) {
