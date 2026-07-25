@@ -35,13 +35,16 @@ interface UserDao {
 
     @Upsert
     suspend fun upsertUsers(users: List<UserEntity>)
+
     @Upsert
     suspend fun upsertFavorite(favorite: FavoriteEntity)
+
     @Upsert
     suspend fun upsertNote(note: UserNoteEntity)
 
     @Query(DELETE_FAVORITE)
     suspend fun deleteFavorite(userId: Int)
+
     @Query(DELETE_NOTE)
     suspend fun deleteNote(userId: Int)
 

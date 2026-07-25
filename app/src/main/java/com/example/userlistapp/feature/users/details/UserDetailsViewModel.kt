@@ -1,12 +1,11 @@
 package com.example.userlistapp.feature.users.details
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.User

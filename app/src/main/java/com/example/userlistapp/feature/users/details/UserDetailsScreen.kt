@@ -178,9 +178,11 @@ private fun DetailsContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        UserAvatar(user.imageUrl, null, Modifier
-            .size(160.dp)
-            .clip(CircleShape))
+        UserAvatar(
+            user.imageUrl, null, Modifier
+                .size(160.dp)
+                .clip(CircleShape)
+        )
         Text(user.fullName, style = MaterialTheme.typography.headlineMedium)
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Detail(stringResource(R.string.username), user.username)

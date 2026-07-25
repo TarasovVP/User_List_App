@@ -1,7 +1,5 @@
 package com.example.userlistapp.feature.users.list
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
@@ -80,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.core.ui.UiAnimationLabels
 import com.example.userlistapp.core.ui.UiTestTags
@@ -398,16 +397,22 @@ private fun UserCard(
     onFavorite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(onClick = onClick, modifier = modifier
-        .fillMaxWidth()
-        .testTag(UiTestTags.user(user.id))) {
+    Card(
+        onClick = onClick, modifier = modifier
+            .fillMaxWidth()
+            .testTag(UiTestTags.user(user.id))
+    ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            UserAvatar(user.imageUrl, null, Modifier
-                .size(72.dp)
-                .clip(CircleShape))
-            Column(Modifier
-                .padding(start = 12.dp)
-                .weight(1f)) {
+            UserAvatar(
+                user.imageUrl, null, Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+            )
+            Column(
+                Modifier
+                    .padding(start = 12.dp)
+                    .weight(1f)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         user.fullName,
@@ -472,9 +477,11 @@ private fun UserCardPreview() {
 
 @Composable
 private fun Centered(padding: PaddingValues, content: @Composable () -> Unit) =
-    Box(Modifier
-        .fillMaxSize()
-        .padding(padding), contentAlignment = Alignment.Center) { content() }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(padding), contentAlignment = Alignment.Center
+    ) { content() }
 
 private const val SCREEN_STATE_KEY = "screen"
 private const val PHASE_STATE_KEY = "phase"

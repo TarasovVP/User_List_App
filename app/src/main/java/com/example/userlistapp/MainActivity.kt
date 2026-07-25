@@ -19,6 +19,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: AppViewModel by viewModels()
+
     @Inject
     lateinit var qualityMonitor: AppQualityMonitor
     private lateinit var jankMonitor: JankMonitor

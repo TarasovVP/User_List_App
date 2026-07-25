@@ -2,8 +2,8 @@ package com.example.userlistapp.domain.usecase
 
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
-import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.RefreshSource
+import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.domain.repository.AuthSessionRepository
@@ -20,7 +20,9 @@ class RefreshUsersUseCase @Inject constructor(
     private val sessionRepository: AuthSessionRepository,
 ) {
     suspend operator fun invoke(source: RefreshSource = RefreshSource.MANUAL): AppResult<Unit> =
-        if (sessionRepository.sessionState.first() is SessionState.SignedIn) repository.refreshUsers(source)
+        if (sessionRepository.sessionState.first() is SessionState.SignedIn) repository.refreshUsers(
+            source
+        )
         else AppResult.Failure(AppError.AuthenticationRequired)
 }
 

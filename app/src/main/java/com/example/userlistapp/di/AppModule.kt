@@ -1,30 +1,30 @@
 package com.example.userlistapp.di
 
 import android.content.Context
+import androidx.core.net.toUri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.core.net.toUri
 import androidx.room.Room
 import com.example.userlistapp.BuildConfig
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.IoDispatcher
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.FirebaseAppQualityMonitor
+import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDao
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserLocalDataSource
-import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.preferences.SettingsRepositoryImpl
 import com.example.userlistapp.data.preferences.settingsDataStore
-import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
-import com.example.userlistapp.data.repository.authSessionDataStore
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
 import com.example.userlistapp.data.remote.UserApi
 import com.example.userlistapp.data.remote.UserRemoteDataSource
+import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.repository.UserRepositoryImpl
+import com.example.userlistapp.data.repository.authSessionDataStore
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
@@ -72,7 +72,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun qualityMonitor(implementation: FirebaseAppQualityMonitor): AppQualityMonitor = implementation
+    fun qualityMonitor(implementation: FirebaseAppQualityMonitor): AppQualityMonitor =
+        implementation
 
     @Provides
     @Singleton
@@ -121,6 +122,7 @@ object AppModule {
     @Provides
     @Singleton
     fun api(retrofit: Retrofit): UserApi = retrofit.create(UserApi::class.java)
+
     @Provides
     @Singleton
     fun authApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
@@ -134,6 +136,7 @@ object AppModule {
     @Provides
     @Singleton
     fun dao(database: UserDatabase): UserDao = database.userDao()
+
     @Provides
     @Singleton
     @SettingsDataStore
@@ -156,6 +159,7 @@ object AppModule {
     @Provides
     @Singleton
     fun remote(api: UserApi): UserRemoteDataSource = RetrofitUserRemoteDataSource(api)
+
     @Provides
     @Singleton
     fun local(database: UserDatabase, dao: UserDao): UserLocalDataSource =

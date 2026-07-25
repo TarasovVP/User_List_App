@@ -10,8 +10,8 @@ import com.example.userlistapp.data.local.UserLocalDataSource
 import com.example.userlistapp.data.local.UserWithLocal
 import com.example.userlistapp.data.remote.UserDto
 import com.example.userlistapp.data.remote.UserRemoteDataSource
-import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.RefreshSource
+import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.repository.UserRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher

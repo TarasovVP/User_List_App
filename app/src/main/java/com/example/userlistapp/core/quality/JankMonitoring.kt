@@ -41,8 +41,8 @@ class JankMonitor(
             Log.i(
                 LOG_TAG,
                 JANK_STATE_LOG_PREFIX + state +
-                    FRAMES_INFIX + counts.total +
-                    JANKY_INFIX + counts.janky,
+                        FRAMES_INFIX + counts.total +
+                        JANKY_INFIX + counts.janky,
             )
         }
         qualityMonitor.log(JANK_SESSION_LOG_PREFIX + summary)

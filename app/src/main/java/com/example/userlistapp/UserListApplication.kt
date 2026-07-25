@@ -14,6 +14,7 @@ import javax.inject.Inject
 class UserListApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
     @Inject
     lateinit var syncCoordinator: SyncCoordinator
 

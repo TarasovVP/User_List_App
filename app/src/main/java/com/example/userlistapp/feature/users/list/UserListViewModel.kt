@@ -1,15 +1,14 @@
 package com.example.userlistapp.feature.users.list
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.toUiText
-import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.RefreshSource
+import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase

@@ -31,7 +31,7 @@ import retrofit2.HttpException
 import java.io.IOException
 
 val Context.authSessionDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = AUTH_SESSION_DATA_STORE_NAME)
+preferencesDataStore(name = AUTH_SESSION_DATA_STORE_NAME)
 
 class AuthSessionRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
