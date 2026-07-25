@@ -42,7 +42,6 @@ class AuthSessionRepositoryImpl(
     private object Keys {
         val authenticatedUserId = intPreferencesKey("simulated_authenticated_user_id")
         val localAccountAvatarUri = stringPreferencesKey("local_account_avatar_uri")
-        val accessToken = stringPreferencesKey("access_token")
     }
 
     override val sessionState: Flow<SessionState> = dataStore.data
@@ -54,7 +53,6 @@ class AuthSessionRepositoryImpl(
             }
         }
         .map { prefs ->
-            tokenHolder.accessToken = prefs[Keys.accessToken]
             prefs[Keys.authenticatedUserId]?.let(SessionState::SignedIn) ?: SessionState.SignedOut
         }
 
@@ -76,13 +74,8 @@ class AuthSessionRepositoryImpl(
             val dto = api.login(LoginRequestDto(username.trim(), password))
             val account = dto.toDomain()
             if (account.id <= 0) return@withContext AppResult.Failure(AppError.InvalidData)
-            dataStore.edit { prefs ->
-                prefs[Keys.authenticatedUserId] = account.id
-                if (dto.accessToken.isNotEmpty()) {
-                    prefs[Keys.accessToken] = dto.accessToken
-                    tokenHolder.accessToken = dto.accessToken
-                }
-            }
+            if (dto.accessToken.isNotEmpty()) tokenHolder.accessToken = dto.accessToken
+            dataStore.edit { it[Keys.authenticatedUserId] = account.id }
             AppResult.Success(account)
         } catch (error: CancellationException) {
             throw error
@@ -134,7 +127,6 @@ class AuthSessionRepositoryImpl(
                 localAvatarUri = it[Keys.localAccountAvatarUri]
                 it.remove(Keys.authenticatedUserId)
                 it.remove(Keys.localAccountAvatarUri)
-                it.remove(Keys.accessToken)
             }
             tokenHolder.accessToken = null
             localAvatarUri?.let(avatarStorage::delete)

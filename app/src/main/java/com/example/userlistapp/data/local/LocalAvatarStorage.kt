@@ -1,9 +1,9 @@
 package com.example.userlistapp.data.local
 
 import java.io.File
+import android.util.Log
 import java.io.IOException
 import java.io.InputStream
-import java.util.logging.Logger
 
 class LocalAvatarStorage(
     private val directory: File,
@@ -32,12 +32,12 @@ class LocalAvatarStorage(
         if (uri.scheme != "file") return
         val file = runCatching { File(uri).canonicalFile }.getOrNull() ?: return
         if (file.parentFile == directory.canonicalFile && file.exists() && !file.delete()) {
-            logger.warning("Could not delete local avatar: ${file.absolutePath}")
+            Log.w(TAG, "Could not delete local avatar: ${file.name}")
         }
     }
 
     companion object {
         const val DIRECTORY_NAME = "account_avatars"
-        private val logger = Logger.getLogger(LocalAvatarStorage::class.java.name)
+        private const val TAG = "LocalAvatarStorage"
     }
 }
