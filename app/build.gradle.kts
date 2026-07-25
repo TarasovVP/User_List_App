@@ -10,6 +10,20 @@ android {
     namespace = "com.example.userlistapp"
     compileSdk = 37
 
+    // To enable release signing: copy keystore.properties.template → keystore.properties,
+    // fill in the values, then uncomment the block below and
+    // `signingConfig = signingConfigs.getByName("release")` inside the release build type.
+    // signingConfigs {
+    //     create("release") {
+    //         val props = java.util.Properties()
+    //         rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use(props::load)
+    //         storeFile = props["storeFile"]?.let { file(it as String) }
+    //         storePassword = props["storePassword"] as? String
+    //         keyAlias = props["keyAlias"] as? String
+    //         keyPassword = props["keyPassword"] as? String
+    //     }
+    // }
+
     defaultConfig {
         applicationId = "com.example.userlistapp"
         minSdk = 26
@@ -17,16 +31,20 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "com.example.userlistapp.HiltTestRunner"
-        vectorDrawables.useSupportLibrary = true
         buildConfigField("String", "API_BASE_URL", "\"https://dummyjson.com/\"")
     }
 
     buildTypes {
-        debug { applicationIdSuffix = ".debug" }
+        debug {
+            applicationIdSuffix = ".debug"
+            // Override with a staging URL when a non-production environment becomes available.
+            buildConfigField("String", "API_BASE_URL", "\"https://dummyjson.com/\"")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // signingConfig = signingConfigs.getByName("release")
         }
     }
 
