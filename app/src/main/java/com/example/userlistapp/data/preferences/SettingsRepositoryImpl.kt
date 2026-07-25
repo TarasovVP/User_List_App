@@ -1,6 +1,7 @@
 package com.example.userlistapp.data.preferences
 
 import android.content.Context
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -26,7 +27,13 @@ class SettingsRepositoryImpl(private val dataStore: DataStore<Preferences>) : Se
     }
 
     override val settings: Flow<AppSettings> = dataStore.data
-        .catch { if (it is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw it }
+        .catch { error ->
+            if (error is IOException && error !is CorruptionException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw error
+            }
+        }
         .map { preferences ->
             AppSettings(
                 themeMode = preferences[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }

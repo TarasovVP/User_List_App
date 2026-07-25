@@ -1,6 +1,7 @@
 package com.example.userlistapp.data.preferences
 
 import android.content.Context
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -41,15 +42,21 @@ class AuthSessionRepositoryImpl(
 
     override val sessionState: Flow<SessionState> = dataStore.data
         .catch { error ->
-            if (error is CancellationException) throw error
-            emit(emptyPreferences())
+            if (error is IOException && error !is CorruptionException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
         }
         .map { it[Keys.authenticatedUserId]?.let(SessionState::SignedIn) ?: SessionState.SignedOut }
 
     override val localAvatarUri: Flow<String?> = dataStore.data
         .catch { error ->
-            if (error is CancellationException) throw error
-            emit(emptyPreferences())
+            if (error is IOException && error !is CorruptionException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
         }
         .map { it[Keys.localAccountAvatarUri] }
 

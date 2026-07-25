@@ -46,19 +46,19 @@ class UserDetailsViewModel @Inject constructor(
 ) : ViewModel() {
     private val userId: Int = savedStateHandle.toRoute<UserDetailsDestination>().userId
     private val draft = MutableStateFlow<String?>(null)
-    private val activeOperations = MutableStateFlow(0)
+    private val operationInFlight = MutableStateFlow(false)
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
 
     val uiState: StateFlow<UserDetailsUiState> = combine(
         observeUser(userId).map(::ObservedUser),
         draft,
-        activeOperations,
-    ) { observed, edited, operationCount ->
+        operationInFlight,
+    ) { observed, edited, isOperationInFlight ->
         UserDetailsUiState(
             user = observed.user,
             noteDraft = edited ?: observed.user?.note.orEmpty(),
-            isSaving = operationCount > 0,
+            isSaving = isOperationInFlight,
             isLoading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserDetailsUiState())
@@ -89,7 +89,7 @@ class UserDetailsViewModel @Inject constructor(
         operation: suspend (User) -> AppResult<Unit>,
     ) {
         val user = uiState.value.user ?: return
-        if (!activeOperations.compareAndSet(expect = 0, update = 1)) return
+        if (!operationInFlight.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             try {
                 when (val result = operation(user)) {
@@ -97,7 +97,7 @@ class UserDetailsViewModel @Inject constructor(
                     is AppResult.Failure -> _events.tryEmit(result.error.toUiText())
                 }
             } finally {
-                activeOperations.value = 0
+                operationInFlight.value = false
             }
         }
     }
