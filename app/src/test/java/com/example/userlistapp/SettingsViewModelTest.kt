@@ -6,6 +6,10 @@ import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
+import com.example.userlistapp.domain.usecase.ObserveSettingsUseCase
+import com.example.userlistapp.domain.usecase.ObserveSyncStateUseCase
+import com.example.userlistapp.domain.usecase.SetBackgroundSyncUseCase
+import com.example.userlistapp.domain.usecase.SetThemeUseCase
 import com.example.userlistapp.feature.settings.SettingsViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,7 +36,7 @@ class SettingsViewModelTest {
     fun `theme and background sync changes are persisted`() = runTest(main.dispatcher) {
         val repository = RecordingSettingsRepository()
         val scheduler = RecordingScheduler()
-        val viewModel = SettingsViewModel(repository, scheduler)
+        val viewModel = settingsViewModel(repository, scheduler)
         collectState(viewModel)
         advanceUntilIdle()
 
@@ -50,7 +54,7 @@ class SettingsViewModelTest {
     fun `ui state combines persisted settings with scheduler state`() = runTest(main.dispatcher) {
         val repository = RecordingSettingsRepository()
         val scheduler = RecordingScheduler()
-        val viewModel = SettingsViewModel(repository, scheduler)
+        val viewModel = settingsViewModel(repository, scheduler)
         collectState(viewModel)
 
         repository.state.value =
@@ -66,7 +70,7 @@ class SettingsViewModelTest {
     fun `background sync switch updates optimistically before persistence completes`() =
         runTest(main.dispatcher) {
             val repository = DelayedSettingsRepository()
-            val viewModel = SettingsViewModel(repository, RecordingScheduler())
+            val viewModel = settingsViewModel(repository, RecordingScheduler())
             collectState(viewModel)
             advanceUntilIdle()
 
@@ -86,7 +90,7 @@ class SettingsViewModelTest {
     fun `failed persistence does not update scheduler and emits error`() =
         runTest(main.dispatcher) {
             val scheduler = RecordingScheduler()
-            val viewModel = SettingsViewModel(FailingSettingsRepository(), scheduler)
+            val viewModel = settingsViewModel(FailingSettingsRepository(), scheduler)
 
             viewModel.events.test {
                 viewModel.setBackgroundSync(false)
@@ -101,6 +105,16 @@ class SettingsViewModelTest {
     private fun TestScope.collectState(viewModel: SettingsViewModel) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
     }
+
+    private fun settingsViewModel(
+        repository: SettingsRepository,
+        scheduler: SyncScheduler,
+    ) = SettingsViewModel(
+        ObserveSettingsUseCase(repository),
+        ObserveSyncStateUseCase(scheduler),
+        SetThemeUseCase(repository),
+        SetBackgroundSyncUseCase(repository),
+    )
 }
 
 private class RecordingSettingsRepository : SettingsRepository {

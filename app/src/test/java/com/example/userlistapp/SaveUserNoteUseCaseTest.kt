@@ -5,6 +5,7 @@ import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase
+import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase.Companion.MAX_NOTE_LENGTH
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
@@ -32,6 +33,30 @@ class SaveUserNoteUseCaseTest {
 
         assertTrue(result is AppResult.Success)
         assertEquals("remember", repository.savedNote)
+    }
+
+    @Test
+    fun `note at maximum length is saved`() = runTest {
+        val repository = NoteRepository()
+        val note = "a".repeat(MAX_NOTE_LENGTH)
+
+        val result = SaveUserNoteUseCase(repository)(userId = 4, note = note)
+
+        assertTrue(result is AppResult.Success)
+        assertEquals(note, repository.savedNote)
+    }
+
+    @Test
+    fun `note over maximum length returns validation error without calling repository`() = runTest {
+        val repository = NoteRepository()
+
+        val result = SaveUserNoteUseCase(repository)(
+            userId = 4,
+            note = "a".repeat(MAX_NOTE_LENGTH + 1),
+        )
+
+        assertEquals(AppResult.Failure(AppError.InvalidNote), result)
+        assertNull(repository.savedNote)
     }
 }
 

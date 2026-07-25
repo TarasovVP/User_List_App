@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -68,6 +69,37 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+kover {
+    reports {
+        filters {
+            excludes {
+                annotatedBy(
+                    "androidx.compose.runtime.Composable",
+                    "dagger.Module",
+                    "dagger.hilt.InstallIn",
+                )
+                classes(
+                    "*.BuildConfig",
+                    "*.Hilt_*",
+                    "*.*_Factory",
+                    "*.*_MembersInjector",
+                    "*.*JsonAdapter",
+                    "com.example.userlistapp.MainActivity",
+                    "com.example.userlistapp.UserListApplication",
+                    "com.example.userlistapp.feature.*.*ScreenKt",
+                    "com.example.userlistapp.feature.*.components.*",
+                    "com.example.userlistapp.navigation.*",
+                )
+            }
+        }
+        verify {
+            rule("Application line coverage") {
+                minBound(40)
+            }
+        }
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -111,6 +143,7 @@ dependencies {
     testImplementation(libs.androidx.test.core.ktx)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.robolectric)
+    testImplementation(libs.kotest.property)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

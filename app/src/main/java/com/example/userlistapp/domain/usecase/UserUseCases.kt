@@ -35,8 +35,14 @@ class ToggleFavoriteUseCase @Inject constructor(private val repository: UserRepo
 class SaveUserNoteUseCase @Inject constructor(private val repository: UserRepository) {
     suspend operator fun invoke(userId: Int, note: String): AppResult<Unit> {
         val normalized = note.trim()
-        if (normalized.isEmpty()) return AppResult.Failure(AppError.InvalidNote)
+        if (normalized.isEmpty() || normalized.length > MAX_NOTE_LENGTH) {
+            return AppResult.Failure(AppError.InvalidNote)
+        }
         return repository.saveNote(userId, normalized)
+    }
+
+    companion object {
+        const val MAX_NOTE_LENGTH = 500
     }
 }
 

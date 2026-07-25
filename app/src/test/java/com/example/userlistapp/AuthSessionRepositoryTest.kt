@@ -7,6 +7,7 @@ import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
+import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.LoginRequestDto
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.usecase.LoadAccountUseCase
@@ -116,6 +117,7 @@ class AuthSessionRepositoryTest {
             PreferenceDataStoreFactory.create(scope = backgroundScope, produceFile = { file }),
             api,
             LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
+            AuthTokenHolder(),
             StandardTestDispatcher(testScheduler),
         )
     }
