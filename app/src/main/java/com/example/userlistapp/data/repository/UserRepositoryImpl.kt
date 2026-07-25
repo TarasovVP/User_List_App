@@ -47,6 +47,7 @@ class UserRepositoryImpl(
             require(entities.map { it.id }.distinct().size == entities.size) {
                 DUPLICATE_USER_IDS_ERROR
             }
+            require(entities.isNotEmpty() || local.countUsers() == 0) { EMPTY_SNAPSHOT_ERROR }
             local.replaceRemoteSnapshot(entities)
             trace.putAttribute(RESULT_ATTRIBUTE, SUCCESS_VALUE)
             qualityMonitor.setCustomKey(REFRESH_RESULT_KEY, SUCCESS_VALUE)
@@ -137,6 +138,7 @@ private const val REFRESH_STARTED_LOG_PREFIX = "users_refresh_started trigger="
 private const val REFRESH_SUCCEEDED_LOG_PREFIX = "users_refresh_succeeded count="
 private const val REFRESH_FAILED_LOG_PREFIX = "users_refresh_failed type="
 private const val DUPLICATE_USER_IDS_ERROR = "Duplicate user ids"
+private const val EMPTY_SNAPSHOT_ERROR = "Empty remote snapshot with a non-empty cache"
 
 fun UserDto.toEntity(): UserEntity = UserEntity(
     id = id,

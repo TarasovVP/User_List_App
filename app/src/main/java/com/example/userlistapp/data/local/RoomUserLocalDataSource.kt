@@ -9,6 +9,8 @@ class RoomUserLocalDataSource(
     override fun observeUsers() = dao.observeUsers()
     override fun observeUser(userId: Int) = dao.observeUser(userId)
 
+    override suspend fun countUsers() = dao.countUsers()
+
     override suspend fun replaceRemoteSnapshot(users: List<UserEntity>) {
         database.withTransaction {
             val candidateBatchId = System.currentTimeMillis()

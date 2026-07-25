@@ -47,7 +47,7 @@ flowchart LR
     WM[WorkManager] --> UC
 ```
 
-Room is the single source of truth for displayed users. A refresh maps the limited remote DTO into entities and updates the snapshot in a transaction. Stale remote users are removed only when they have no local favorite or note. Preferences DataStore persists theme, background-sync enablement, last successful sync timestamp, simulated authenticated user ID, and optional local account-avatar URI. A centralized coordinator combines the session and setting flows before scheduling unique WorkManager work.
+Room is the single source of truth for displayed users. A refresh maps the limited remote DTO into entities and updates the snapshot in a transaction. Stale remote users are removed only when they have no local favorite or note. A response that carries no users is rejected as invalid data whenever the cache is populated, so a malformed but successful response can never clear the snapshot. Preferences DataStore persists theme, background-sync enablement, last successful sync timestamp, simulated authenticated user ID, and optional local account-avatar URI, and an unreadable preferences file is replaced with empty preferences instead of failing every read. A centralized coordinator combines the session and setting flows before scheduling unique WorkManager work.
 
 ## Technology
 

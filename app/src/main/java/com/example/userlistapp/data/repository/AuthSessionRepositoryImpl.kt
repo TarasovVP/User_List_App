@@ -1,14 +1,11 @@
 package com.example.userlistapp.data.repository
 
-import android.content.Context
-import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.IoDispatcher
@@ -30,9 +27,6 @@ import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import java.io.IOException
 
-val Context.authSessionDataStore: DataStore<Preferences> by
-preferencesDataStore(name = AUTH_SESSION_DATA_STORE_NAME)
-
 class AuthSessionRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
     private val api: AuthApi,
@@ -45,27 +39,16 @@ class AuthSessionRepositoryImpl(
         val localAccountAvatarUri = stringPreferencesKey(LOCAL_ACCOUNT_AVATAR_URI_KEY)
     }
 
-    override val sessionState: Flow<SessionState> = dataStore.data
+    private val preferences: Flow<Preferences> = dataStore.data
         .catch { error ->
-            if (error is IOException && error !is CorruptionException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { prefs ->
-            prefs[Keys.authenticatedUserId]?.let(SessionState::SignedIn) ?: SessionState.SignedOut
+            if (error is IOException) emit(emptyPreferences()) else throw error
         }
 
-    override val localAvatarUri: Flow<String?> = dataStore.data
-        .catch { error ->
-            if (error is IOException && error !is CorruptionException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { it[Keys.localAccountAvatarUri] }
+    override val sessionState: Flow<SessionState> = preferences.map { prefs ->
+        prefs[Keys.authenticatedUserId]?.let(SessionState::SignedIn) ?: SessionState.SignedOut
+    }
+
+    override val localAvatarUri: Flow<String?> = preferences.map { it[Keys.localAccountAvatarUri] }
 
     override suspend fun signIn(
         username: String,
@@ -184,6 +167,5 @@ class AuthSessionRepositoryImpl(
 
 private fun AccountDto.toDomain() = Account(id, username, firstName, lastName, email, image)
 
-private const val AUTH_SESSION_DATA_STORE_NAME = "auth_session"
 private const val AUTHENTICATED_USER_ID_KEY = "simulated_authenticated_user_id"
 private const val LOCAL_ACCOUNT_AVATAR_URI_KEY = "local_account_avatar_uri"

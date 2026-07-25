@@ -19,6 +19,7 @@ private const val DELETE_NOTE =
     "DELETE FROM user_notes WHERE userId = :userId"
 private const val SELECT_LATEST_SNAPSHOT =
     "SELECT MAX(remoteUpdatedAt) FROM users"
+private const val COUNT_USERS = "SELECT COUNT(*) FROM users"
 private const val DELETE_STALE_USERS = """
     DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
     AND id NOT IN (SELECT userId FROM favorite_users)
@@ -50,6 +51,9 @@ interface UserDao {
 
     @Query(SELECT_LATEST_SNAPSHOT)
     suspend fun latestSnapshotBatchId(): Long?
+
+    @Query(COUNT_USERS)
+    suspend fun countUsers(): Int
 
     @Query(DELETE_STALE_USERS)
     suspend fun deleteStale(snapshotBatchId: Long)

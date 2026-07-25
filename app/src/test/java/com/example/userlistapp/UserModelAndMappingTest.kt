@@ -5,11 +5,16 @@ import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.data.remote.AddressDto
 import com.example.userlistapp.data.remote.CompanyDto
 import com.example.userlistapp.data.remote.UserDto
+import com.example.userlistapp.data.remote.UsersResponseDto
 import com.example.userlistapp.data.repository.toEntity
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class UserModelAndMappingTest {
+    private val json = Json { ignoreUnknownKeys = true }
+
     @Test
     fun `full name and initials ignore missing name parts`() {
         val user = sampleUser(firstName = "Ada", lastName = "Lovelace")
@@ -37,6 +42,11 @@ class UserModelAndMappingTest {
         assertEquals(7, entity.id)
         assertEquals("Analytical", entity.companyName)
         assertEquals("Engineer", entity.jobTitle)
+    }
+
+    @Test(expected = SerializationException::class)
+    fun `a response without a users array is not read as an empty directory`() {
+        json.decodeFromString<UsersResponseDto>("""{"message":"Invalid token"}""")
     }
 
     @Test

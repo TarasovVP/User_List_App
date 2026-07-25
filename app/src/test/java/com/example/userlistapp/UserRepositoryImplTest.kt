@@ -116,8 +116,25 @@ class UserRepositoryImplTest {
     }
 
     @Test
-    fun `empty remote snapshot is persisted as a valid result`() = runTest {
+    fun `empty remote snapshot never discards a populated cache`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val monitor = RecordingQualityMonitor()
+
+        val result = UserRepositoryImpl(
+            FakeRemote(emptyList()),
+            local,
+            Dispatchers.Unconfined,
+            monitor,
+        ).refreshUsers()
+
+        assertEquals(AppResult.Failure(AppError.InvalidData), result)
+        assertEquals(listOf(9), local.saved.map { it.id })
+        assertEquals("invalid_data", monitor.trace.attributes["error_type"])
+    }
+
+    @Test
+    fun `empty remote snapshot is a valid result while the cache is empty`() = runTest {
+        val local = FakeLocal()
 
         val result = UserRepositoryImpl(
             FakeRemote(emptyList()),
@@ -199,6 +216,8 @@ private class FakeLocal : UserLocalDataSource {
     override fun observeUsers(): Flow<List<UserWithLocal>> = rows
     override fun observeUser(userId: Int): Flow<UserWithLocal?> =
         rows.map { it.firstOrNull { row -> row.id == userId } }
+
+    override suspend fun countUsers() = saved.size
 
     override suspend fun replaceRemoteSnapshot(users: List<UserEntity>) {
         saved = users

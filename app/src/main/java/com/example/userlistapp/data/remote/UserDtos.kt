@@ -6,7 +6,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UsersResponseDto(val users: List<UserDto> = emptyList())
+data class UsersResponseDto(val users: List<UserDto>)
 
 @Serializable
 data class UserDto(

@@ -2,10 +2,10 @@ package com.example.userlistapp
 
 import com.example.userlistapp.core.common.EMPTY
 
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.data.local.LocalAvatarStorage
+import com.example.userlistapp.data.preferences.createPreferencesDataStore
 import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
@@ -68,6 +68,19 @@ class AuthSessionRepositoryTest {
     }
 
     @Test
+    fun `a corrupted session file is replaced instead of failing every read`() = runTest {
+        val file = newDataStoreFile()
+        file.writeText("not a preferences protobuf")
+        val repository = repository(TestAuthApi(), file)
+
+        assertEquals(SessionState.SignedOut, repository.sessionState.first())
+        assertNull(repository.localAvatarUri.first())
+
+        repository.signIn("emilys", "emilyspass")
+        assertEquals(SessionState.SignedIn(1), repository.sessionState.first())
+    }
+
+    @Test
     fun `sign out clears user id and local avatar`() = runTest {
         val source = File.createTempFile("avatar-source-", ".image")
         source.writeText("avatar")
@@ -110,18 +123,23 @@ class AuthSessionRepositoryTest {
 
     private fun kotlinx.coroutines.test.TestScope.repository(
         api: AuthApi,
+        file: File = newDataStoreFile(),
     ): AuthSessionRepositoryImpl {
-        val file = File.createTempFile("auth-session-", ".preferences_pb")
-        file.delete()
-        dataStoreFiles += file
         val avatarDirectory = createTempDirectory("account-avatars-").toFile()
         return AuthSessionRepositoryImpl(
-            PreferenceDataStoreFactory.create(scope = backgroundScope, produceFile = { file }),
+            createPreferencesDataStore(scope = backgroundScope) { file },
             api,
             LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
             AuthTokenHolder(),
             StandardTestDispatcher(testScheduler),
         )
+    }
+
+    private fun newDataStoreFile(): File {
+        val file = File.createTempFile("auth-session-", ".preferences_pb")
+        file.delete()
+        dataStoreFiles += file
+        return file
     }
 }
 
