@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.UiText
-import com.example.userlistapp.core.common.toUiText
+import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.usecase.ImportLocalAvatarUseCase

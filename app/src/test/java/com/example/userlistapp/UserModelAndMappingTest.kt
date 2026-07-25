@@ -1,7 +1,7 @@
 package com.example.userlistapp
 
 import com.example.userlistapp.core.common.AppError
-import com.example.userlistapp.core.common.toUiText
+import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.data.remote.AddressDto
 import com.example.userlistapp.data.remote.CompanyDto
 import com.example.userlistapp.data.remote.UserDto

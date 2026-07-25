@@ -3,8 +3,8 @@ package com.example.userlistapp
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
-import com.example.userlistapp.data.preferences.AuthSessionRepositoryImpl
-import com.example.userlistapp.data.preferences.LocalAvatarStorage
+import com.example.userlistapp.data.local.LocalAvatarStorage
+import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.LoginRequestDto

@@ -12,11 +12,11 @@ import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDao
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserLocalDataSource
-import com.example.userlistapp.data.preferences.AuthSessionRepositoryImpl
-import com.example.userlistapp.data.preferences.LocalAvatarStorage
+import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.preferences.SettingsRepositoryImpl
-import com.example.userlistapp.data.preferences.authSessionDataStore
 import com.example.userlistapp.data.preferences.settingsDataStore
+import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
+import com.example.userlistapp.data.repository.authSessionDataStore
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
 import com.example.userlistapp.data.remote.UserApi

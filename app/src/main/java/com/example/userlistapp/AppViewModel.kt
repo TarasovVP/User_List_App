@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.SessionState
-import com.example.userlistapp.domain.repository.AuthSessionRepository
-import com.example.userlistapp.domain.repository.SettingsRepository
+import com.example.userlistapp.domain.usecase.ObserveAuthSessionUseCase
+import com.example.userlistapp.domain.usecase.ObserveSettingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -13,15 +13,15 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AppViewModel @Inject constructor(
-    repository: SettingsRepository,
-    sessionRepository: AuthSessionRepository,
+    observeSettings: ObserveSettingsUseCase,
+    observeSession: ObserveAuthSessionUseCase,
 ) : ViewModel() {
-    val settings = repository.settings.stateIn(
+    val settings = observeSettings().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = AppSettings(),
     )
-    val sessionState = sessionRepository.sessionState.stateIn(
+    val sessionState = observeSession().stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = SessionState.Initializing,

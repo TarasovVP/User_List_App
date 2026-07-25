@@ -1,4 +1,4 @@
-package com.example.userlistapp.data.preferences
+package com.example.userlistapp.data.repository
 
 import android.content.Context
 import androidx.datastore.core.CorruptionException
@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.IoDispatcher
+import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.LoginRequestDto
@@ -106,7 +107,7 @@ class AuthSessionRepositoryImpl(
             } catch (_: Exception) {
                 AppResult.Failure(AppError.Unknown)
             }
-    }
+        }
 
     override suspend fun signOut(): AppResult<Unit> = withContext(ioDispatcher) {
         try {

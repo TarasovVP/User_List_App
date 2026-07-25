@@ -1,4 +1,4 @@
-package com.example.userlistapp.data.preferences
+package com.example.userlistapp.data.local
 
 import java.io.File
 import java.io.IOException

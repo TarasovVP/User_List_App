@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.UiText
-import com.example.userlistapp.core.common.toUiText
+import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
-import com.example.userlistapp.domain.repository.SettingsRepository
-import com.example.userlistapp.domain.repository.SyncScheduler
+import com.example.userlistapp.domain.usecase.ObserveSettingsUseCase
+import com.example.userlistapp.domain.usecase.ObserveSyncStateUseCase
+import com.example.userlistapp.domain.usecase.SetBackgroundSyncUseCase
+import com.example.userlistapp.domain.usecase.SetThemeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -31,8 +33,10 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: SettingsRepository,
-    private val scheduler: SyncScheduler,
+    private val observeSettings: ObserveSettingsUseCase,
+    observeSyncState: ObserveSyncStateUseCase,
+    private val setThemeUseCase: SetThemeUseCase,
+    private val setBackgroundSyncUseCase: SetBackgroundSyncUseCase,
 ) : ViewModel() {
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
@@ -40,8 +44,8 @@ class SettingsViewModel @Inject constructor(
     private var backgroundSyncWrite: Job? = null
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        repository.settings,
-        scheduler.observeState(),
+        observeSettings(),
+        observeSyncState(),
         pendingBackgroundSync,
     ) { settings, syncState, pendingSync ->
         SettingsUiState(
@@ -50,15 +54,15 @@ class SettingsViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
-    fun setTheme(mode: ThemeMode) = persistSetting(update = { repository.setTheme(mode) })
+    fun setTheme(mode: ThemeMode) = persistSetting { setThemeUseCase(mode) }
 
     fun setBackgroundSync(enabled: Boolean) {
         backgroundSyncWrite?.cancel()
         pendingBackgroundSync.value = enabled
         backgroundSyncWrite = viewModelScope.launch {
             try {
-                repository.setBackgroundSync(enabled)
-                repository.settings.first { it.backgroundSyncEnabled == enabled }
+                setBackgroundSyncUseCase(enabled)
+                observeSettings().first { it.backgroundSyncEnabled == enabled }
                 if (pendingBackgroundSync.value == enabled) pendingBackgroundSync.value = null
             } catch (cancelled: CancellationException) {
                 throw cancelled

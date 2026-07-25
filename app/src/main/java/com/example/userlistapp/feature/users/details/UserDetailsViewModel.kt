@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.UiText
-import com.example.userlistapp.core.common.toUiText
+import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.usecase.DeleteUserNoteUseCase
 import com.example.userlistapp.domain.usecase.ObserveUserDetailsUseCase
