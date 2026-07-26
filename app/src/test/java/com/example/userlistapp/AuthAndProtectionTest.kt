@@ -1,28 +1,25 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
-import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.AuthSessionGuard
+import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
-import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.worker.SyncCoordinator
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -31,6 +28,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

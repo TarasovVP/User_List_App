@@ -1,9 +1,8 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.QualityTrace
 import com.example.userlistapp.data.local.UserEntity

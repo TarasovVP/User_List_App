@@ -1,12 +1,11 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import android.content.res.Configuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode

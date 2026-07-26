@@ -1,10 +1,9 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.data.local.RoomUserLocalDataSource
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserEntity

@@ -1,7 +1,5 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -14,17 +12,18 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.NoOpAppQualityMonitor
 import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.di.AppModule
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
+import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
-import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
@@ -97,7 +96,8 @@ class MainActivityFlowTest {
         compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).performClick()
 
         compose.waitForText(context.getString(R.string.users_title))
-        compose.onNodeWithContentDescription(context.getString(R.string.search_users)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.search_users))
+            .performClick()
         compose.onNodeWithTag(UiTestTags.SEARCH).performTextInput("Grace")
         compose.waitForText("Grace Hopper")
         compose.onNodeWithTag(UiTestTags.user(2)).performClick()
@@ -169,7 +169,8 @@ private class FakeUserRepository : UserRepository {
     override suspend fun refreshUsers(source: RefreshSource) = AppResult.Success(Unit)
 
     override suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit> {
-        users.value = users.value.map { if (it.id == userId) it.copy(isFavorite = favorite) else it }
+        users.value =
+            users.value.map { if (it.id == userId) it.copy(isFavorite = favorite) else it }
         return AppResult.Success(Unit)
     }
 

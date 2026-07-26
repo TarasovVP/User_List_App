@@ -25,8 +25,8 @@ import com.example.userlistapp.data.remote.UserApi
 import com.example.userlistapp.data.remote.UserRemoteDataSource
 import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.repository.UserRepositoryImpl
-import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.AuthSessionGuard
+import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.domain.repository.UserRepository

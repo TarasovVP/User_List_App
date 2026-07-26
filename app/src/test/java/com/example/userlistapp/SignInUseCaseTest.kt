@@ -1,9 +1,8 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.repository.AuthSessionRepository

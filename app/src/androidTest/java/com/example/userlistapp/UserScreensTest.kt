@@ -1,7 +1,5 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,8 +11,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -24,6 +22,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.domain.model.Account
@@ -82,8 +81,10 @@ class UserScreensTest {
 
         compose.onNodeWithText("Ada User").assertIsDisplayed()
         compose.onNodeWithTag(UiTestTags.favorite(1)).performClick()
-        compose.onNodeWithContentDescription(context.getString(R.string.favorite)).assertIsDisplayed()
-        compose.onNodeWithContentDescription(context.getString(R.string.search_users)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.favorite))
+            .assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(R.string.search_users))
+            .performClick()
         val search = compose.onNodeWithTag(UiTestTags.SEARCH)
         search.performTextInput("Grace")
         search.performImeAction()
@@ -118,7 +119,8 @@ class UserScreensTest {
         }
 
         compose.onNodeWithTag(UiTestTags.FAVORITE_BUTTON).performClick()
-        compose.onNodeWithContentDescription(context.getString(R.string.favorite)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(R.string.favorite))
+            .assertIsDisplayed()
         compose.onNodeWithTag(UiTestTags.NOTE_FIELD).performTextInput("Remember this")
         compose.onNodeWithTag(UiTestTags.SAVE_NOTE).assertIsEnabled()
             .performSemanticsAction(SemanticsActions.OnClick)
@@ -228,8 +230,10 @@ class UserScreensTest {
         compose.onAllNodesWithText(error).assertCountEquals(0)
         val password = compose.onNodeWithTag(UiTestTags.LOGIN_PASSWORD)
         password.performTextInput("emilyspass")
-        compose.onNodeWithContentDescription(context.getString(R.string.show_password)).performClick()
-        compose.onNodeWithContentDescription(context.getString(R.string.hide_password)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(R.string.show_password))
+            .performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.hide_password))
+            .assertIsDisplayed()
         compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).assertIsEnabled()
         password.performImeAction()
         compose.runOnIdle { assertEquals("emilys" to "emilyspass", submitted) }
@@ -264,7 +268,14 @@ class UserScreensTest {
                 AccountScreen(
                     state = AuthUiState(
                         session = SessionState.SignedIn(1),
-                        account = Account(1, "emilys", "Emily", "Johnson", "emily@example.com", String.EMPTY),
+                        account = Account(
+                            1,
+                            "emilys",
+                            "Emily",
+                            "Johnson",
+                            "emily@example.com",
+                            String.EMPTY
+                        ),
                         localAvatarUri = "content://local/avatar",
                     ),
                     onOpenSignIn = {},
@@ -279,7 +290,8 @@ class UserScreensTest {
         }
 
         compose.onNodeWithText("Emily Johnson").assertIsDisplayed()
-        compose.onNodeWithContentDescription(context.getString(R.string.remove_local_photo)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.remove_local_photo))
+            .performClick()
         compose.onNodeWithText(context.getString(R.string.sign_out)).performClick()
         compose.runOnIdle {
             assertTrue(removed)

@@ -12,8 +12,8 @@ import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode
-import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.AuthSessionGuard
+import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
@@ -26,8 +26,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -101,7 +101,9 @@ private class WorkerUserRepository(
     private val refreshResult: AppResult<Unit>,
 ) : UserRepository {
     var lastRefreshSource: RefreshSource? = null
-    override fun observeUsers() = MutableStateFlow(emptyList<com.example.userlistapp.domain.model.User>())
+    override fun observeUsers() =
+        MutableStateFlow(emptyList<com.example.userlistapp.domain.model.User>())
+
     override fun observeUser(userId: Int) =
         MutableStateFlow<com.example.userlistapp.domain.model.User?>(null)
 
@@ -109,6 +111,7 @@ private class WorkerUserRepository(
         lastRefreshSource = source
         return refreshResult
     }
+
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)

@@ -1,7 +1,5 @@
 package com.example.userlistapp
 
-import com.example.userlistapp.core.common.EMPTY
-
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -9,13 +7,14 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.data.local.LocalAvatarStorage
 import com.example.userlistapp.data.preferences.createPreferencesDataStore
-import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.remote.AccountDto
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.LoginRequestDto
+import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.usecase.LoadAccountUseCase
@@ -27,10 +26,10 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.After
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response

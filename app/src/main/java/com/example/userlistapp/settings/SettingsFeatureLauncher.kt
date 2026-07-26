@@ -64,13 +64,13 @@ class SettingsFeatureLauncher(
             SplitInstallSessionStatus.CANCELED,
             SplitInstallSessionStatus.CANCELING,
             SplitInstallSessionStatus.FAILED,
-            -> finishInstallWithError()
+                -> finishInstallWithError()
         }
     }
 
     private fun isInstalled(): Boolean =
         MODULE_NAME in manager.installedModules ||
-            runCatching { activity.classLoader.loadClass(SETTINGS_ACTIVITY_CLASS) }.isSuccess
+                runCatching { activity.classLoader.loadClass(SETTINGS_ACTIVITY_CLASS) }.isSuccess
 
     private fun launchSettings() {
         activity.startActivity(Intent().setClassName(activity, SETTINGS_ACTIVITY_CLASS))

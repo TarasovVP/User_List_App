@@ -8,7 +8,6 @@ import com.example.userlistapp.data.repository.toDomain
 import com.example.userlistapp.data.repository.toEntity
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.arbitrary
-import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.boolean
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.long
