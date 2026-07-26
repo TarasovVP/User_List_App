@@ -32,12 +32,11 @@ import com.example.userlistapp.feature.account.AccountScreen
 import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.feature.account.AuthenticationRequired
 import com.example.userlistapp.feature.account.SignInSheet
-import com.example.userlistapp.feature.settings.SettingsRoute
 import com.example.userlistapp.feature.users.details.UserDetailsRoute
 import com.example.userlistapp.feature.users.list.UserListRoute
 
 @Composable
-fun AppNavigation(session: SessionState) {
+fun AppNavigation(session: SessionState, onOpenSettings: () -> Unit) {
     val nav = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
     val auth by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -99,11 +98,11 @@ fun AppNavigation(session: SessionState) {
                 if (session is SessionState.SignedIn) {
                     UserListRoute(
                         onUser = { nav.navigate(UserDetailsDestination(it)) },
-                        onSettings = { nav.navigate(SettingsDestination) },
+                        onSettings = onOpenSettings,
                     )
                 } else AuthenticationRequired(
                     onSignIn = { showSignIn = true },
-                    onSettings = { nav.navigate(SettingsDestination) },
+                    onSettings = onOpenSettings,
                 )
             }
             composable<AccountDestination> {
@@ -115,14 +114,13 @@ fun AppNavigation(session: SessionState) {
                     onImportAvatar = authViewModel::importLocalAvatar,
                     onRemoveAvatar = authViewModel::removeLocalAvatar,
                     onClearAvatarError = authViewModel::clearAvatarError,
-                    onSettings = { nav.navigate(SettingsDestination) },
+                    onSettings = onOpenSettings,
                 )
             }
             composable<UserDetailsDestination> {
                 if (session is SessionState.SignedIn) UserDetailsRoute(onBack = nav::navigateUp)
                 else AuthenticationRequired(onSignIn = { showSignIn = true })
             }
-            composable<SettingsDestination> { SettingsRoute(onBack = nav::navigateUp) }
         }
     }
     if (showSignIn) {

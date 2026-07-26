@@ -10,6 +10,3 @@ data object AccountDestination
 
 @Serializable
 data class UserDetailsDestination(val userId: Int)
-
-@Serializable
-data object SettingsDestination

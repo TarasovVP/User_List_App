@@ -103,7 +103,9 @@ class SettingsViewModelTest {
         }
 
     private fun TestScope.collectState(viewModel: SettingsViewModel) {
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
+        }
     }
 
     private fun settingsViewModel(

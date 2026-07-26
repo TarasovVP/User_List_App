@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "User List App"
 include(":app")
+include(":settings")

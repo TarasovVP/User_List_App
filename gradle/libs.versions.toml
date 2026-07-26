@@ -1,7 +1,7 @@
 [versions]
 agp = "9.2.1"
 kotlin = "2.4.10"
-ksp = "2.3.9"
+ksp = "2.3.10"
 hilt = "2.60.1"
 compose-bom = "2026.06.01"
 androidx-core = "1.19.0"
@@ -35,6 +35,7 @@ google-services = "4.5.0"
 firebase-crashlytics-plugin = "3.0.7"
 firebase-performance-plugin = "2.0.2"
 androidx-metrics = "1.0.0"
+play-feature-delivery = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
@@ -86,9 +87,11 @@ firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "fir
 firebase-performance = { module = "com.google.firebase:firebase-perf" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 androidx-metrics-performance = { module = "androidx.metrics:metrics-performance", version.ref = "androidx-metrics" }
+play-feature-delivery = { module = "com.google.android.play:feature-delivery", version.ref = "play-feature-delivery" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -12,7 +12,6 @@ import com.example.userlistapp.domain.usecase.ObserveSettingsUseCase
 import com.example.userlistapp.domain.usecase.ObserveSyncStateUseCase
 import com.example.userlistapp.domain.usecase.SetBackgroundSyncUseCase
 import com.example.userlistapp.domain.usecase.SetThemeUseCase
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,15 +23,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class SettingsUiState(
     val settings: AppSettings = AppSettings(),
     val syncState: SyncState = SyncState.IDLE,
 )
 
-@HiltViewModel
-class SettingsViewModel @Inject constructor(
+class SettingsViewModel(
     private val observeSettings: ObserveSettingsUseCase,
     observeSyncState: ObserveSyncStateUseCase,
     private val setThemeUseCase: SetThemeUseCase,

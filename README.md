@@ -8,6 +8,7 @@ User List App is an offline-first Android directory backed by the DummyJSON user
 - Cached offline content with distinct initial-loading, refresh, empty, and error behavior
 - User details with accessible avatar fallback, favorite toggle, and explicitly saved local notes
 - System/light/dark theme selection and persistent background-sync setting
+- Settings delivered on demand as a Play Feature Delivery dynamic feature
 - Unique network-constrained daily WorkManager synchronization with visible work state and last-success time
 - Transactional Room refresh that preserves notes and favorites, including a real version 1 → 2 migration
 - Simulated DummyJSON authentication (`emilys` / `emilyspass`) with Guest and Account states
@@ -29,7 +30,10 @@ Runtime screenshots require launching the application on an emulator or physical
 
 ## Architecture
 
-The app is a single Gradle application module with package boundaries. Compose has no data-source access; all screens use hoisted state and lifecycle-aware `StateFlow` collection.
+The app has a base application module and an on-demand `settings` dynamic-feature module. Compose
+has no data-source access; all screens use hoisted state and lifecycle-aware `StateFlow` collection.
+The base module requests Settings through Play Feature Delivery and exposes its Hilt-owned use cases
+through an application entry point, avoiding a dependency from the base app to feature code.
 
 ```mermaid
 flowchart LR
@@ -66,16 +70,20 @@ Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, Android
 - `worker`: periodic sync worker and scheduler
 - `core/quality`: Firebase adapter, custom traces, Crashlytics context, and JankStats aggregation
 - `di`: dependency graph
+- `settings`: on-demand Settings Activity, Compose UI, ViewModel, and feature-local tests
 
 ## Build and run
 
 Requirements: JDK 17 and Android SDK 37. Open the repository in Android Studio or run:
 
 ```bash
-./gradlew assembleDebug
+./gradlew :app:bundleDebug
 ```
 
-Install `app/build/outputs/apk/debug/app-debug.apk`, then launch while online for the initial refresh. Cached profiles, favorites, and notes remain usable offline.
+The resulting `app/build/outputs/bundle/debug/app-debug.aab` contains the base app and the on-demand
+`settings` feature. Deploy the bundle through Android Studio with the Settings dynamic feature
+selected for local development, or through a Play testing track to verify the real download flow.
+Cached profiles, favorites, and notes remain usable offline.
 
 ## App Quality Monitoring
 
@@ -103,7 +111,7 @@ App for this training project. The shared configuration is stored at `app/google
 Firebase is enabled by the normal build:
 
 ```bash
-./gradlew assembleDebug
+./gradlew :app:bundleDebug
 ```
 
 This avoids a second Firebase registration, but debug and release cannot be installed side by side,
@@ -153,6 +161,7 @@ context without enabling Analytics collection solely for automatic breadcrumbs.
 
 ```bash
 ./gradlew testDebugUnitTest
+./gradlew :settings:testDebugUnitTest
 ./gradlew lintDebug
 ./gradlew compileDebugAndroidTestKotlin
 ./gradlew connectedDebugAndroidTest

@@ -14,6 +14,7 @@ plugins {
 android {
     namespace = "com.example.userlistapp"
     compileSdk = 37
+    dynamicFeatures += setOf(":settings")
 
     // To enable release signing: copy keystore.properties.template → keystore.properties,
     // fill in the values, then uncomment the block below and
@@ -146,6 +147,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.play.feature.delivery)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

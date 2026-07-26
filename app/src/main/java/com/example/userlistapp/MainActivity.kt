@@ -12,6 +12,7 @@ import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.JankMonitor
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.navigation.AppNavigation
+import com.example.userlistapp.settings.SettingsFeatureLauncher
 import com.example.userlistapp.ui.theme.UserListTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -23,17 +24,21 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var qualityMonitor: AppQualityMonitor
     private lateinit var jankMonitor: JankMonitor
+    private lateinit var settingsFeatureLauncher: SettingsFeatureLauncher
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         splash.setKeepOnScreenCondition { viewModel.sessionState.value is SessionState.Initializing }
+        settingsFeatureLauncher = SettingsFeatureLauncher(this)
         enableEdgeToEdge()
         setContent {
             val settings by viewModel.settings.collectAsStateWithLifecycle()
             val session by viewModel.sessionState.collectAsStateWithLifecycle()
             UserListTheme(settings.themeMode) {
-                if (session !is SessionState.Initializing) AppNavigation(session)
+                if (session !is SessionState.Initializing) {
+                    AppNavigation(session, settingsFeatureLauncher::open)
+                }
             }
         }
         jankMonitor = JankMonitor(window, qualityMonitor)
