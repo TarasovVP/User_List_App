@@ -42,6 +42,7 @@ android {
 
     buildTypes {
         debug {
+            applicationIdSuffix = ".debug"
             // Override with a staging URL when a non-production environment becomes available.
             buildConfigField("String", "API_BASE_URL", "\"https://dummyjson.com/\"")
         }

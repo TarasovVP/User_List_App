@@ -109,17 +109,17 @@ and are represented by trace attributes and logs rather than non-fatal Crashlyti
 
 ### Firebase configuration
 
-Debug and release deliberately share the same `com.example.userlistapp` application ID and Firebase
-App for this training project. The shared configuration is stored at `app/google-services.json`, so
-Firebase is enabled by the normal build:
+Debug uses the `com.example.userlistapp.debug` application ID and its Firebase Android client from
+`app/src/debug/google-services.json`. Release keeps `com.example.userlistapp` and uses
+`app/google-services.json`. Both clients belong to the same Firebase project, while remaining
+separately identifiable and installable side by side. Firebase is enabled by the normal build:
 
 ```bash
 ./gradlew :app:bundleDebug
 ```
 
-This avoids a second Firebase registration, but debug and release cannot be installed side by side,
-and development crashes/performance events appear in the same Firebase dashboards. Keep deliberate
-test events limited to development devices.
+Development crashes and performance events still reach the shared Firebase project, so filter by
+the debug app where applicable and keep deliberate test events limited to development devices.
 
 ### Development verification
 
