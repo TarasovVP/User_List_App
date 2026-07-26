@@ -22,6 +22,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
@@ -34,6 +36,8 @@ class AuthSessionRepositoryImpl(
     private val tokenHolder: AuthTokenHolder,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthSessionRepository {
+    private val accountMutationMutex = Mutex()
+
     private object Keys {
         val authenticatedUserId = intPreferencesKey(AUTHENTICATED_USER_ID_KEY)
         val localAccountAvatarUri = stringPreferencesKey(LOCAL_ACCOUNT_AVATAR_URI_KEY)
@@ -105,62 +109,76 @@ class AuthSessionRepositoryImpl(
         }
 
     override suspend fun signOut(): AppResult<Unit> = withContext(ioDispatcher) {
-        try {
-            var localAvatarUri: String? = null
-            dataStore.edit {
-                localAvatarUri = it[Keys.localAccountAvatarUri]
-                it.remove(Keys.authenticatedUserId)
-                it.remove(Keys.localAccountAvatarUri)
+        accountMutationMutex.withLock {
+            try {
+                var localAvatarUri: String? = null
+                dataStore.edit {
+                    localAvatarUri = it[Keys.localAccountAvatarUri]
+                    it.remove(Keys.authenticatedUserId)
+                    it.remove(Keys.localAccountAvatarUri)
+                }
+                tokenHolder.accessToken = null
+                localAvatarUri?.let(avatarStorage::delete)
+                AppResult.Success(Unit)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                AppResult.Failure(AppError.Storage)
             }
-            tokenHolder.accessToken = null
-            localAvatarUri?.let(avatarStorage::delete)
-            AppResult.Success(Unit)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            AppResult.Failure(AppError.Storage)
         }
     }
 
     override suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit> =
         withContext(ioDispatcher) {
-            val importedUri = try {
-                avatarStorage.import(sourceUri)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                return@withContext AppResult.Failure(AppError.Storage)
-            }
-            try {
-                var previousUri: String? = null
-                dataStore.edit { preferences ->
-                    previousUri = preferences[Keys.localAccountAvatarUri]
-                    preferences[Keys.localAccountAvatarUri] = importedUri
+            accountMutationMutex.withLock {
+                val importedUri = try {
+                    avatarStorage.import(sourceUri)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    return@withLock AppResult.Failure(AppError.Storage)
                 }
-                previousUri?.let(avatarStorage::delete)
-                AppResult.Success(Unit)
-            } catch (error: CancellationException) {
-                avatarStorage.delete(importedUri)
-                throw error
-            } catch (_: Exception) {
-                avatarStorage.delete(importedUri)
-                AppResult.Failure(AppError.Storage)
+                try {
+                    var previousUri: String? = null
+                    var isSignedIn = false
+                    dataStore.edit { preferences ->
+                        isSignedIn = preferences[Keys.authenticatedUserId] != null
+                        if (isSignedIn) {
+                            previousUri = preferences[Keys.localAccountAvatarUri]
+                            preferences[Keys.localAccountAvatarUri] = importedUri
+                        }
+                    }
+                    if (!isSignedIn) {
+                        avatarStorage.delete(importedUri)
+                        return@withLock AppResult.Failure(AppError.AuthenticationRequired)
+                    }
+                    previousUri?.let(avatarStorage::delete)
+                    AppResult.Success(Unit)
+                } catch (error: CancellationException) {
+                    avatarStorage.delete(importedUri)
+                    throw error
+                } catch (_: Exception) {
+                    avatarStorage.delete(importedUri)
+                    AppResult.Failure(AppError.Storage)
+                }
             }
         }
 
     override suspend fun removeLocalAvatar(): AppResult<Unit> = withContext(ioDispatcher) {
-        try {
-            var localAvatarUri: String? = null
-            dataStore.edit { preferences ->
-                localAvatarUri = preferences[Keys.localAccountAvatarUri]
-                preferences.remove(Keys.localAccountAvatarUri)
+        accountMutationMutex.withLock {
+            try {
+                var localAvatarUri: String? = null
+                dataStore.edit { preferences ->
+                    localAvatarUri = preferences[Keys.localAccountAvatarUri]
+                    preferences.remove(Keys.localAccountAvatarUri)
+                }
+                localAvatarUri?.let(avatarStorage::delete)
+                AppResult.Success(Unit)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                AppResult.Failure(AppError.Storage)
             }
-            localAvatarUri?.let(avatarStorage::delete)
-            AppResult.Success(Unit)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            AppResult.Failure(AppError.Storage)
         }
     }
 }

@@ -96,6 +96,28 @@ class AuthSessionRepositoryTest {
     }
 
     @Test
+    fun `avatar import is rejected after sign out and leaves no file`() = runTest {
+        val source = File.createTempFile("avatar-source-", ".image")
+        source.writeText("avatar")
+        val avatarDirectory = createTempDirectory("account-avatars-").toFile()
+        val dataStoreFile = newDataStoreFile()
+        val repository = AuthSessionRepositoryImpl(
+            createPreferencesDataStore(scope = backgroundScope) { dataStoreFile },
+            TestAuthApi(),
+            LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
+            AuthTokenHolder(),
+            StandardTestDispatcher(testScheduler),
+        )
+
+        assertEquals(
+            AppResult.Failure(AppError.AuthenticationRequired),
+            repository.importLocalAvatar(source.toURI().toString()),
+        )
+        assertNull(repository.localAvatarUri.first())
+        assertEquals(emptyList<File>(), avatarDirectory.listFiles().orEmpty().toList())
+    }
+
+    @Test
     fun `load account is pure and use case signs out for an invalid stored user`() = runTest {
         val api = TestAuthApi()
         val source = File.createTempFile("avatar-source-", ".image")

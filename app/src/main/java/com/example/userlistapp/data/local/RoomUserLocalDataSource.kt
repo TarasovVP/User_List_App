@@ -16,6 +16,7 @@ class RoomUserLocalDataSource(
             val candidateBatchId = System.currentTimeMillis()
             val latestBatchId = dao.latestSnapshotBatchId()
             val snapshotBatchId = nextSnapshotBatchId(candidateBatchId, latestBatchId)
+            dao.markUsersStale(STALE_SNAPSHOT_BATCH_ID)
             dao.upsertUsers(users.map { it.copy(snapshotBatchId = snapshotBatchId) })
             dao.deleteStale(snapshotBatchId)
         }
@@ -25,14 +26,22 @@ class RoomUserLocalDataSource(
         if (favorite) {
             dao.upsertFavorite(FavoriteEntity(userId, System.currentTimeMillis()))
         } else {
-            dao.deleteFavorite(userId)
+            database.withTransaction {
+                dao.deleteFavorite(userId)
+                dao.deleteStaleUserWithoutLocalData(userId, STALE_SNAPSHOT_BATCH_ID)
+            }
         }
     }
 
     override suspend fun saveNote(userId: Int, note: String) =
         dao.upsertNote(UserNoteEntity(userId, note, System.currentTimeMillis()))
 
-    override suspend fun deleteNote(userId: Int) = dao.deleteNote(userId)
+    override suspend fun deleteNote(userId: Int) {
+        database.withTransaction {
+            dao.deleteNote(userId)
+            dao.deleteStaleUserWithoutLocalData(userId, STALE_SNAPSHOT_BATCH_ID)
+        }
+    }
 }
 
 internal fun nextSnapshotBatchId(candidateBatchId: Long, latestBatchId: Long?): Long = when {
@@ -40,3 +49,5 @@ internal fun nextSnapshotBatchId(candidateBatchId: Long, latestBatchId: Long?): 
     latestBatchId < Long.MAX_VALUE -> latestBatchId + 1
     else -> Long.MAX_VALUE
 }
+
+private const val STALE_SNAPSHOT_BATCH_ID = Long.MIN_VALUE

@@ -73,6 +73,40 @@ class RoomUserDaoTest {
     }
 
     @Test
+    fun removingLastLocalInformationImmediatelyDeletesAStaleUser() = runTest {
+        val local = RoomUserLocalDataSource(db, dao)
+        local.replaceRemoteSnapshot(
+            listOf(
+                entity(1, "Favorite"),
+                entity(2, "Noted"),
+                entity(3, "Current"),
+            )
+        )
+        local.setFavorite(1, true)
+        local.saveNote(2, "Keep")
+        local.replaceRemoteSnapshot(listOf(entity(3, "Current")))
+
+        local.setFavorite(1, false)
+        local.deleteNote(2)
+
+        assertNull(dao.observeUser(1).first())
+        assertNull(dao.observeUser(2).first())
+        assertEquals(listOf(3), dao.observeUsers().first().map { it.id })
+    }
+
+    @Test
+    fun removingLastLocalInformationDeletesAStaleUserAfterAnEmptySnapshot() = runTest {
+        val local = RoomUserLocalDataSource(db, dao)
+        local.replaceRemoteSnapshot(listOf(entity(1, "Favorite")))
+        local.setFavorite(1, true)
+        local.replaceRemoteSnapshot(emptyList())
+
+        local.setFavorite(1, false)
+
+        assertNull(dao.observeUser(1).first())
+    }
+
+    @Test
     fun emptyRefreshRemovesRemoteOnlyUsersAndPreservesLocalInformation() = runTest {
         val local = RoomUserLocalDataSource(db, dao)
         local.replaceRemoteSnapshot(

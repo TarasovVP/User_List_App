@@ -25,6 +25,13 @@ private const val DELETE_STALE_USERS = """
     AND id NOT IN (SELECT userId FROM favorite_users)
     AND id NOT IN (SELECT userId FROM user_notes)
 """
+private const val MARK_USERS_STALE =
+    "UPDATE users SET remoteUpdatedAt = :staleBatchId"
+private const val DELETE_STALE_USER_WITHOUT_LOCAL_DATA = """
+    DELETE FROM users WHERE id = :userId AND remoteUpdatedAt = :staleBatchId
+    AND id NOT IN (SELECT userId FROM favorite_users)
+    AND id NOT IN (SELECT userId FROM user_notes)
+"""
 
 @Dao
 interface UserDao {
@@ -57,4 +64,10 @@ interface UserDao {
 
     @Query(DELETE_STALE_USERS)
     suspend fun deleteStale(snapshotBatchId: Long)
+
+    @Query(MARK_USERS_STALE)
+    suspend fun markUsersStale(staleBatchId: Long)
+
+    @Query(DELETE_STALE_USER_WITHOUT_LOCAL_DATA)
+    suspend fun deleteStaleUserWithoutLocalData(userId: Int, staleBatchId: Long)
 }
