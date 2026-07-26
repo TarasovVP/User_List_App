@@ -28,7 +28,11 @@ private const val DELETE_STALE_USERS = """
 private const val MARK_USERS_STALE =
     "UPDATE users SET remoteUpdatedAt = :staleBatchId"
 private const val DELETE_STALE_USER_WITHOUT_LOCAL_DATA = """
-    DELETE FROM users WHERE id = :userId AND remoteUpdatedAt = :staleBatchId
+    DELETE FROM users WHERE id = :userId
+    AND (
+        remoteUpdatedAt = :staleBatchId
+        OR remoteUpdatedAt != (SELECT MAX(remoteUpdatedAt) FROM users)
+    )
     AND id NOT IN (SELECT userId FROM favorite_users)
     AND id NOT IN (SELECT userId FROM user_notes)
 """

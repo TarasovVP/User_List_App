@@ -107,6 +107,23 @@ class RoomUserDaoTest {
     }
 
     @Test
+    fun removingLocalInformationDeletesAStaleUserCreatedBeforeSentinelSnapshots() = runTest {
+        val local = RoomUserLocalDataSource(db, dao)
+        dao.upsertUsers(
+            listOf(
+                entity(1, "Legacy stale").copy(snapshotBatchId = 50),
+                entity(2, "Latest").copy(snapshotBatchId = 100),
+            )
+        )
+        local.setFavorite(1, true)
+
+        local.setFavorite(1, false)
+
+        assertNull(dao.observeUser(1).first())
+        assertEquals(listOf(2), dao.observeUsers().first().map { it.id })
+    }
+
+    @Test
     fun emptyRefreshRemovesRemoteOnlyUsersAndPreservesLocalInformation() = runTest {
         val local = RoomUserLocalDataSource(db, dao)
         local.replaceRemoteSnapshot(

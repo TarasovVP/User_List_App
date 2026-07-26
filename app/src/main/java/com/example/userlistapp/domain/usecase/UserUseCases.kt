@@ -6,6 +6,7 @@ import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
+import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.UserRepository
 import kotlinx.coroutines.flow.first
@@ -18,12 +19,16 @@ class ObserveUsersUseCase @Inject constructor(private val repository: UserReposi
 class RefreshUsersUseCase @Inject constructor(
     private val repository: UserRepository,
     private val sessionRepository: AuthSessionRepository,
+    private val sessionGuard: AuthSessionGuard,
 ) {
     suspend operator fun invoke(source: RefreshSource = RefreshSource.MANUAL): AppResult<Unit> =
-        if (sessionRepository.sessionState.first() is SessionState.SignedIn) repository.refreshUsers(
-            source
-        )
-        else AppResult.Failure(AppError.AuthenticationRequired)
+        sessionGuard.withLock {
+            if (sessionRepository.sessionState.first() is SessionState.SignedIn) {
+                repository.refreshUsers(source)
+            } else {
+                AppResult.Failure(AppError.AuthenticationRequired)
+            }
+        }
 }
 
 class ObserveUserDetailsUseCase @Inject constructor(private val repository: UserRepository) {

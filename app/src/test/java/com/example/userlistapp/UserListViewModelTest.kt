@@ -10,6 +10,7 @@ import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
+import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
@@ -202,7 +203,7 @@ class UserListViewModelTest {
 
     private fun viewModel(repo: UserRepository) = UserListViewModel(
         ObserveUsersUseCase(repo),
-        RefreshUsersUseCase(repo, SignedInSessionRepository),
+        RefreshUsersUseCase(repo, SignedInSessionRepository, AuthSessionGuard()),
         ToggleFavoriteUseCase(repo),
         FilterAndSortUsersUseCase(),
         main.dispatcher,

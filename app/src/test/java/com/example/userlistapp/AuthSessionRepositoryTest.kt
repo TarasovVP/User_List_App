@@ -2,6 +2,11 @@ package com.example.userlistapp
 
 import com.example.userlistapp.core.common.EMPTY
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.mutablePreferencesOf
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.data.local.LocalAvatarStorage
@@ -12,7 +17,11 @@ import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.LoginRequestDto
 import com.example.userlistapp.domain.model.SessionState
+import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.usecase.LoadAccountUseCase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -20,6 +29,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Test
 import retrofit2.HttpException
@@ -68,6 +78,25 @@ class AuthSessionRepositoryTest {
     }
 
     @Test
+    fun `failed session persistence never leaves an authorization token installed`() = runTest {
+        val tokenHolder = AuthTokenHolder().apply { accessToken = "previous-token" }
+        val repository = AuthSessionRepositoryImpl(
+            AlwaysFailingDataStore(),
+            TestAuthApi(accessToken = "new-token"),
+            LocalAvatarStorage(createTempDirectory("account-avatars-").toFile()) { null },
+            tokenHolder,
+            StandardTestDispatcher(testScheduler),
+            AuthSessionGuard(),
+        )
+
+        assertEquals(
+            AppResult.Failure(AppError.Network),
+            repository.signIn("emilys", "emilyspass"),
+        )
+        assertNull(tokenHolder.accessToken)
+    }
+
+    @Test
     fun `a corrupted session file is replaced instead of failing every read`() = runTest {
         val file = newDataStoreFile()
         file.writeText("not a preferences protobuf")
@@ -107,6 +136,7 @@ class AuthSessionRepositoryTest {
             LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
             AuthTokenHolder(),
             StandardTestDispatcher(testScheduler),
+            AuthSessionGuard(),
         )
 
         assertEquals(
@@ -114,6 +144,35 @@ class AuthSessionRepositoryTest {
             repository.importLocalAvatar(source.toURI().toString()),
         )
         assertNull(repository.localAvatarUri.first())
+        assertEquals(emptyList<File>(), avatarDirectory.listFiles().orEmpty().toList())
+    }
+
+    @Test
+    fun `cancel after avatar preference commit rolls back uri and imported file`() = runTest {
+        val source = File.createTempFile("avatar-source-", ".image")
+        source.writeText("avatar")
+        val avatarDirectory = createTempDirectory("account-avatars-").toFile()
+        val dataStore = CommitThenCancelDataStore(
+            mutablePreferencesOf(intPreferencesKey(AUTH_USER_ID_KEY) to 1),
+        )
+        val repository = AuthSessionRepositoryImpl(
+            dataStore,
+            TestAuthApi(),
+            LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
+            AuthTokenHolder(),
+            StandardTestDispatcher(testScheduler),
+            AuthSessionGuard(),
+        )
+
+        var cancellationPropagated = false
+        try {
+            repository.importLocalAvatar(source.toURI().toString())
+        } catch (_: CancellationException) {
+            cancellationPropagated = true
+        }
+
+        assertTrue(cancellationPropagated)
+        assertNull(dataStore.state.value[stringPreferencesKey(LOCAL_AVATAR_URI_KEY)])
         assertEquals(emptyList<File>(), avatarDirectory.listFiles().orEmpty().toList())
     }
 
@@ -154,6 +213,7 @@ class AuthSessionRepositoryTest {
             LocalAvatarStorage(avatarDirectory) { uri -> File(java.net.URI(uri)).inputStream() },
             AuthTokenHolder(),
             StandardTestDispatcher(testScheduler),
+            AuthSessionGuard(),
         )
     }
 
@@ -165,13 +225,48 @@ class AuthSessionRepositoryTest {
     }
 }
 
+private class CommitThenCancelDataStore(initial: Preferences) : DataStore<Preferences> {
+    val state = MutableStateFlow(initial)
+    override val data: Flow<Preferences> = state
+    private var shouldCancel = true
+
+    override suspend fun updateData(
+        transform: suspend (t: Preferences) -> Preferences,
+    ): Preferences {
+        val updated = transform(state.value)
+        state.value = updated
+        if (shouldCancel) {
+            shouldCancel = false
+            throw CancellationException("cancel after commit")
+        }
+        return updated
+    }
+}
+
+private class AlwaysFailingDataStore : DataStore<Preferences> {
+    override val data: Flow<Preferences> = MutableStateFlow(mutablePreferencesOf())
+
+    override suspend fun updateData(
+        transform: suspend (t: Preferences) -> Preferences,
+    ): Preferences = throw IOException("session persistence failed")
+}
+
 private class TestAuthApi(
     var loginFailure: Throwable? = null,
     var accountFailure: Throwable? = null,
+    private val accessToken: String = String.EMPTY,
 ) : AuthApi {
     override suspend fun login(request: LoginRequestDto): AccountDto {
         loginFailure?.let { throw it }
-        return AccountDto(1, request.username, "Emily", "Johnson", "emily@example.com", String.EMPTY)
+        return AccountDto(
+            1,
+            request.username,
+            "Emily",
+            "Johnson",
+            "emily@example.com",
+            String.EMPTY,
+            accessToken,
+        )
     }
 
     override suspend fun getAccount(id: Int): AccountDto {
@@ -179,3 +274,6 @@ private class TestAuthApi(
         return AccountDto(id, "emilys", "Emily", "Johnson", "emily@example.com", String.EMPTY)
     }
 }
+
+private const val AUTH_USER_ID_KEY = "simulated_authenticated_user_id"
+private const val LOCAL_AVATAR_URI_KEY = "local_account_avatar_uri"

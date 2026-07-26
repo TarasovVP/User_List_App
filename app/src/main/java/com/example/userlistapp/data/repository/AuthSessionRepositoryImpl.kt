@@ -16,14 +16,14 @@ import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.LoginRequestDto
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
+import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.repository.AuthSessionRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
@@ -35,9 +35,8 @@ class AuthSessionRepositoryImpl(
     private val avatarStorage: LocalAvatarStorage,
     private val tokenHolder: AuthTokenHolder,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val sessionGuard: AuthSessionGuard,
 ) : AuthSessionRepository {
-    private val accountMutationMutex = Mutex()
-
     private object Keys {
         val authenticatedUserId = intPreferencesKey(AUTHENTICATED_USER_ID_KEY)
         val localAccountAvatarUri = stringPreferencesKey(LOCAL_ACCOUNT_AVATAR_URI_KEY)
@@ -58,12 +57,15 @@ class AuthSessionRepositoryImpl(
         username: String,
         password: String,
     ): AppResult<Account> = withContext(ioDispatcher) {
+        tokenHolder.accessToken = null
         try {
             val dto = api.login(LoginRequestDto(username.trim(), password))
             val account = dto.toDomain()
             if (account.id <= 0) return@withContext AppResult.Failure(AppError.InvalidData)
-            if (dto.accessToken.isNotEmpty()) tokenHolder.accessToken = dto.accessToken
-            dataStore.edit { it[Keys.authenticatedUserId] = account.id }
+            sessionGuard.withLock {
+                dataStore.edit { it[Keys.authenticatedUserId] = account.id }
+                tokenHolder.accessToken = dto.accessToken.ifEmpty { null }
+            }
             AppResult.Success(account)
         } catch (error: CancellationException) {
             throw error
@@ -109,7 +111,8 @@ class AuthSessionRepositoryImpl(
         }
 
     override suspend fun signOut(): AppResult<Unit> = withContext(ioDispatcher) {
-        accountMutationMutex.withLock {
+        sessionGuard.withLock {
+            tokenHolder.accessToken = null
             try {
                 var localAvatarUri: String? = null
                 dataStore.edit {
@@ -117,7 +120,6 @@ class AuthSessionRepositoryImpl(
                     it.remove(Keys.authenticatedUserId)
                     it.remove(Keys.localAccountAvatarUri)
                 }
-                tokenHolder.accessToken = null
                 localAvatarUri?.let(avatarStorage::delete)
                 AppResult.Success(Unit)
             } catch (error: CancellationException) {
@@ -130,7 +132,7 @@ class AuthSessionRepositoryImpl(
 
     override suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit> =
         withContext(ioDispatcher) {
-            accountMutationMutex.withLock {
+            sessionGuard.withLock {
                 val importedUri = try {
                     avatarStorage.import(sourceUri)
                 } catch (error: CancellationException) {
@@ -138,8 +140,8 @@ class AuthSessionRepositoryImpl(
                 } catch (_: Exception) {
                     return@withLock AppResult.Failure(AppError.Storage)
                 }
+                var previousUri: String? = null
                 try {
-                    var previousUri: String? = null
                     var isSignedIn = false
                     dataStore.edit { preferences ->
                         isSignedIn = preferences[Keys.authenticatedUserId] != null
@@ -155,17 +157,17 @@ class AuthSessionRepositoryImpl(
                     previousUri?.let(avatarStorage::delete)
                     AppResult.Success(Unit)
                 } catch (error: CancellationException) {
-                    avatarStorage.delete(importedUri)
+                    rollbackAvatarImport(importedUri, previousUri)
                     throw error
                 } catch (_: Exception) {
-                    avatarStorage.delete(importedUri)
+                    rollbackAvatarImport(importedUri, previousUri)
                     AppResult.Failure(AppError.Storage)
                 }
             }
         }
 
     override suspend fun removeLocalAvatar(): AppResult<Unit> = withContext(ioDispatcher) {
-        accountMutationMutex.withLock {
+        sessionGuard.withLock {
             try {
                 var localAvatarUri: String? = null
                 dataStore.edit { preferences ->
@@ -178,6 +180,25 @@ class AuthSessionRepositoryImpl(
                 throw error
             } catch (_: Exception) {
                 AppResult.Failure(AppError.Storage)
+            }
+        }
+    }
+
+    private suspend fun rollbackAvatarImport(importedUri: String, previousUri: String?) {
+        withContext(NonCancellable) {
+            val preferencesRolledBack = runCatching {
+                dataStore.edit { preferences ->
+                    if (preferences[Keys.localAccountAvatarUri] == importedUri) {
+                        if (previousUri == null) {
+                            preferences.remove(Keys.localAccountAvatarUri)
+                        } else {
+                            preferences[Keys.localAccountAvatarUri] = previousUri
+                        }
+                    }
+                }
+            }.isSuccess
+            if (preferencesRolledBack) {
+                runCatching { avatarStorage.delete(importedUri) }
             }
         }
     }

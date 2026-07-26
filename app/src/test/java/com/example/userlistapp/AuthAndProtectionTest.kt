@@ -11,13 +11,16 @@ import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.repository.AuthSessionRepository
+import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.worker.SyncCoordinator
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
@@ -145,13 +148,42 @@ class AuthAndProtectionTest {
         runTest(main.dispatcher) {
             val users = CountingUserRepository()
             val auth = FakeAuthRepository()
-            val refresh = RefreshUsersUseCase(users, auth)
+            val refresh = RefreshUsersUseCase(users, auth, AuthSessionGuard())
 
             assertEquals(AppResult.Failure(AppError.AuthenticationRequired), refresh())
             assertEquals(0, users.refreshCalls)
             auth.session.value = SessionState.SignedIn(1)
             assertEquals(AppResult.Success(Unit), refresh())
             assertEquals(1, users.refreshCalls)
+        }
+
+    @Test
+    fun `sign out cannot commit while a protected refresh is running`() =
+        runTest(main.dispatcher) {
+            val refreshStarted = CompletableDeferred<Unit>()
+            val releaseRefresh = CompletableDeferred<Unit>()
+            val users = object : CountingUserRepository() {
+                override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
+                    refreshStarted.complete(Unit)
+                    releaseRefresh.await()
+                    return AppResult.Success(Unit)
+                }
+            }
+            val auth = FakeAuthRepository(SessionState.SignedIn(1))
+            val guard = AuthSessionGuard()
+            val refresh = async { RefreshUsersUseCase(users, auth, guard)() }
+            refreshStarted.await()
+
+            val signOut = async {
+                guard.withLock { auth.session.value = SessionState.SignedOut }
+            }
+            runCurrent()
+            assertEquals(SessionState.SignedIn(1), auth.session.value)
+
+            releaseRefresh.complete(Unit)
+            refresh.await()
+            signOut.await()
+            assertEquals(SessionState.SignedOut, auth.session.value)
         }
 
     @Test
@@ -230,7 +262,7 @@ private class FakeAuthRepository(
     }
 }
 
-private class CountingUserRepository : UserRepository {
+private open class CountingUserRepository : UserRepository {
     var refreshCalls = 0
     override fun observeUsers() =
         MutableStateFlow(emptyList<com.example.userlistapp.domain.model.User>())
@@ -238,7 +270,7 @@ private class CountingUserRepository : UserRepository {
     override fun observeUser(userId: Int) =
         MutableStateFlow<com.example.userlistapp.domain.model.User?>(null)
 
-    override suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
+    override open suspend fun refreshUsers(source: RefreshSource): AppResult<Unit> {
         refreshCalls++; return AppResult.Success(Unit)
     }
 

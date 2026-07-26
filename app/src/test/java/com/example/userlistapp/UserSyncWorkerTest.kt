@@ -13,6 +13,7 @@ import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.repository.AuthSessionRepository
+import com.example.userlistapp.domain.repository.AuthSessionGuard
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
@@ -77,7 +78,7 @@ class UserSyncWorkerTest {
         val auth = WorkerAuthRepository(
             if (signedIn) SessionState.SignedIn(1) else SessionState.SignedOut,
         )
-        val refreshUsers = RefreshUsersUseCase(users, auth)
+        val refreshUsers = RefreshUsersUseCase(users, auth, AuthSessionGuard())
         val factory = object : WorkerFactory() {
             override fun createWorker(
                 appContext: Context,
