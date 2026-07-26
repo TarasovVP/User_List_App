@@ -88,6 +88,30 @@ The resulting `app/build/outputs/bundle/debug/app-debug.aab` contains the base a
 selected for local development, or through a Play testing track to verify the real download flow.
 Cached profiles, favorites, and notes remain usable offline.
 
+### Release signing
+
+The project already contains the Gradle configuration required to sign release APKs and app
+bundles, but it deliberately does not distribute a shared private key. Debug builds, tests, and
+normal Android Studio development do not require any additional signing files.
+
+To produce a signed release from a clone or fork, each engineer should generate their own
+`release.jks`, copy `keystore.properties.template` to `keystore.properties`, and fill in their local
+keystore password, key alias, and key password. Gradle automatically enables the release signing
+configuration when these files are present in the repository root.
+
+Both `release.jks` and `keystore.properties` are ignored by Git and must not be committed. Back them
+up in a secure password manager or encrypted archive if builds signed with that key need to be
+updated later. Without the local files, release code can still be compiled, but the resulting
+release artifact is unsigned and cannot be installed or uploaded to Google Play until it is signed.
+
+```bash
+keytool -genkeypair -keystore release.jks -alias user-list-upload \
+  -keyalg RSA -keysize 4096 -validity 10000
+cp keystore.properties.template keystore.properties
+# Fill in keystore.properties with the credentials entered above.
+./gradlew :app:bundleRelease
+```
+
 ## App Quality Monitoring
 
 The selected flow is initial, manual, retry, and background synchronization of the users list.

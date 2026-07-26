@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -11,24 +13,29 @@ plugins {
     alias(libs.plugins.firebase.performance)
 }
 
+val releaseSigningPropertiesFile = rootProject.file("keystore.properties")
+val releaseSigningProperties = Properties().apply {
+    if (releaseSigningPropertiesFile.exists()) {
+        releaseSigningPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     namespace = "com.example.userlistapp"
     compileSdk = 37
     dynamicFeatures += setOf(":settings")
 
-    // To enable release signing: copy keystore.properties.template → keystore.properties,
-    // fill in the values, then uncomment the block below and
-    // `signingConfig = signingConfigs.getByName("release")` inside the release build type.
-    // signingConfigs {
-    //     create("release") {
-    //         val props = java.util.Properties()
-    //         rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use(props::load)
-    //         storeFile = props["storeFile"]?.let { file(it as String) }
-    //         storePassword = props["storePassword"] as? String
-    //         keyAlias = props["keyAlias"] as? String
-    //         keyPassword = props["keyPassword"] as? String
-    //     }
-    // }
+    signingConfigs {
+        if (releaseSigningPropertiesFile.exists()) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseSigningProperties.getProperty("storeFile")))
+                storePassword =
+                    requireNotNull(releaseSigningProperties.getProperty("storePassword"))
+                keyAlias = requireNotNull(releaseSigningProperties.getProperty("keyAlias"))
+                keyPassword = requireNotNull(releaseSigningProperties.getProperty("keyPassword"))
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.userlistapp"
@@ -50,7 +57,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // signingConfig = signingConfigs.getByName("release")
+            if (releaseSigningPropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
