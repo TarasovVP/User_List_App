@@ -7,13 +7,13 @@ import androidx.navigation.toRoute
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
+import com.example.userlistapp.core.navigation.UserDetailsDestination
 import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.usecase.DeleteUserNoteUseCase
 import com.example.userlistapp.domain.usecase.ObserveUserDetailsUseCase
 import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
-import com.example.userlistapp.navigation.UserDetailsDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

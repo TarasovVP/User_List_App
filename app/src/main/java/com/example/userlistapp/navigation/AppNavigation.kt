@@ -27,6 +27,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.userlistapp.R
+import com.example.userlistapp.core.navigation.AccountDestination
+import com.example.userlistapp.core.navigation.UserDetailsDestination
+import com.example.userlistapp.core.navigation.UsersDestination
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.feature.account.AccountScreen
 import com.example.userlistapp.feature.account.AuthViewModel

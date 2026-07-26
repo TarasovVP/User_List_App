@@ -1,4 +1,4 @@
-package com.example.userlistapp.navigation
+package com.example.userlistapp.core.navigation
 
 import kotlinx.serialization.Serializable
 

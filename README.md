@@ -30,10 +30,12 @@ Runtime screenshots require launching the application on an emulator or physical
 
 ## Architecture
 
-The app has a base application module and an on-demand `settings` dynamic-feature module. Compose
-has no data-source access; all screens use hoisted state and lifecycle-aware `StateFlow` collection.
-The base module requests Settings through Play Feature Delivery and exposes its Hilt-owned use cases
-through an application entry point, avoiding a dependency from the base app to feature code.
+The app has a base application module, a platform-independent `core:navigation` contract module,
+and an on-demand `settings` dynamic-feature module. Compose has no data-source access; all screens
+use hoisted state and lifecycle-aware `StateFlow` collection. The base module requests Settings
+through Play Feature Delivery and exposes its Hilt-owned use cases through an application entry
+point, avoiding a dependency from the base app to feature code. Feature code and the navigation
+host both depend on route contracts; features never depend back on the navigation host.
 
 ```mermaid
 flowchart LR
@@ -60,6 +62,7 @@ Kotlin, Coroutines/Flow, Jetpack Compose Material 3, Navigation Compose, Android
 ## Project structure
 
 - `core/common`: typed results and application errors
+- `core:navigation`: serializable route contracts shared by navigation hosts and features
 - `domain`: models, repository contracts, and use cases
 - `data/remote`: constrained API DTOs and Retrofit source
 - `data/local`: Room entities, DAO, database, migration, transactional source
