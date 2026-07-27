@@ -515,6 +515,15 @@ private fun RealtimeCard(
     }
 }
 
+@Composable
+private fun UserSort.label(): String = stringResource(
+    when (this) {
+        UserSort.NAME_ASCENDING -> R.string.sort_az
+        UserSort.NAME_DESCENDING -> R.string.sort_za
+        UserSort.RECENTLY_VIEWED -> R.string.sort_recently_viewed
+    }
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UserControls(
@@ -533,7 +542,7 @@ private fun UserControls(
                     selected = false,
                     onClick = { expanded = true },
                     label = {
-                        Text(stringResource(if (state.sort == UserSort.NAME_ASCENDING) R.string.sort_az else R.string.sort_za))
+                        Text(state.sort.label())
                     },
                     trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
                     modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
@@ -541,7 +550,7 @@ private fun UserControls(
                 ExposedDropdownMenu(expanded, { expanded = false }) {
                     UserSort.entries.forEach { sort ->
                         DropdownMenuItem(
-                            text = { Text(stringResource(if (sort == UserSort.NAME_ASCENDING) R.string.sort_az else R.string.sort_za)) },
+                            text = { Text(sort.label()) },
                             onClick = { onSort(sort); expanded = false },
                         )
                     }

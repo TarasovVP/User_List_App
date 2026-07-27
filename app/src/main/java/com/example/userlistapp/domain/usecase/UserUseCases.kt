@@ -2,6 +2,7 @@ package com.example.userlistapp.domain.usecase
 
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
+import com.example.userlistapp.core.common.TimeProvider
 import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.User
@@ -58,6 +59,14 @@ class DeleteUserNoteUseCase @Inject constructor(private val repository: UserRepo
     suspend operator fun invoke(userId: Int) = repository.deleteNote(userId)
 }
 
+class MarkUserAsViewedUseCase @Inject constructor(
+    private val repository: UserRepository,
+    private val timeProvider: TimeProvider,
+) {
+    suspend operator fun invoke(userId: Int) =
+        repository.markUserAsViewed(userId, timeProvider.currentTimeMillis())
+}
+
 class FilterAndSortUsersUseCase @Inject constructor() {
     operator fun invoke(
         users: List<User>,
@@ -67,6 +76,11 @@ class FilterAndSortUsersUseCase @Inject constructor() {
     ): List<User> {
         val terms = query.trim().split(QUERY_WHITESPACE).filter(String::isNotEmpty)
         val nameComparator = compareBy<User> { it.fullName.lowercase() }
+        val recentlyViewedComparator = compareByDescending<User> { it.viewedAt != null }
+            .thenByDescending { it.viewedAt }
+            .then(compareBy(String.CASE_INSENSITIVE_ORDER) { it.fullName })
+            .thenBy { it.id }
+
         return users.asSequence()
             .filter { !favoritesOnly || it.isFavorite }
             .filter { user ->
@@ -76,7 +90,11 @@ class FilterAndSortUsersUseCase @Inject constructor() {
                 }
             }
             .sortedWith(
-                if (sort == UserSort.NAME_ASCENDING) nameComparator else nameComparator.reversed(),
+                when (sort) {
+                    UserSort.NAME_ASCENDING -> nameComparator
+                    UserSort.NAME_DESCENDING -> nameComparator.reversed()
+                    UserSort.RECENTLY_VIEWED -> recentlyViewedComparator
+                },
             )
             .toList()
     }

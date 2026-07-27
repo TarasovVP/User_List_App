@@ -117,11 +117,17 @@ class FilterAndSortUsersPropertyTest {
     }
 
     private fun assertSorted(result: List<User>, sort: UserSort) {
-        val names = result.map { it.fullName.lowercase() }
-        val expected = names.sorted().let {
-            if (sort == UserSort.NAME_ASCENDING) it else it.reversed()
+        val expected = when (sort) {
+            UserSort.NAME_ASCENDING -> result.sortedBy { it.fullName.lowercase() }
+            UserSort.NAME_DESCENDING -> result.sortedByDescending { it.fullName.lowercase() }
+            UserSort.RECENTLY_VIEWED -> result.sortedWith(
+                compareByDescending<User> { it.viewedAt != null }
+                    .thenByDescending { it.viewedAt }
+                    .then(compareBy(String.CASE_INSENSITIVE_ORDER) { it.fullName })
+                    .thenBy { it.id }
+            )
         }
-        assertEquals(expected, names)
+        assertEquals(expected, result)
     }
 
     private fun List<User>.multiset() = groupingBy { it }.eachCount()

@@ -275,6 +275,7 @@ private open class CountingUserRepository : UserRepository {
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) = AppResult.Success(Unit)
 }
 
 private class FakeSettingsRepository : SettingsRepository {

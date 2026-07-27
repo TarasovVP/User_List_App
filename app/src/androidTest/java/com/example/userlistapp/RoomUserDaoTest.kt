@@ -192,6 +192,44 @@ class RoomUserDaoTest {
         local.replaceRemoteSnapshot(listOf(entity(1, "Only remaining user")))
         assertEquals(listOf(1), dao.observeUsers().first().map { it.id })
     }
+
+    @Test
+    fun viewedAtIsStoredAndObserved() = runTest {
+        val local = RoomUserLocalDataSource(db, dao, noteCipher)
+        local.replaceRemoteSnapshot(listOf(entity(1, "Ada")))
+        local.markUserAsViewed(1, 1000L)
+        assertEquals(1000L, dao.observeUser(1).first()?.viewedAt)
+    }
+
+    @Test
+    fun viewedUserAbsentFromBackendSnapshotIsRetained() = runTest {
+        val local = RoomUserLocalDataSource(db, dao, noteCipher)
+        local.replaceRemoteSnapshot(listOf(entity(1, "Viewed"), entity(2, "Remote Only")))
+        local.markUserAsViewed(1, 1000L)
+        local.replaceRemoteSnapshot(emptyList())
+        val users = dao.observeUsers().first()
+        assertEquals(listOf(1), users.map { it.id })
+        assertEquals(1000L, users.single().viewedAt)
+    }
+
+    @Test
+    fun unviewedRemoteOnlyStaleUserIsDeleted() = runTest {
+        val local = RoomUserLocalDataSource(db, dao, noteCipher)
+        local.replaceRemoteSnapshot(listOf(entity(1, "Remote Only")))
+        local.replaceRemoteSnapshot(emptyList())
+        assertNull(dao.observeUser(1).first())
+    }
+
+    @Test
+    fun deleteStaleUserWithoutLocalDataDoesNotDeleteRecentlyViewedStaleUser() = runTest {
+        val local = RoomUserLocalDataSource(db, dao, noteCipher)
+        local.replaceRemoteSnapshot(listOf(entity(1, "Viewed"), entity(2, "Current")))
+        local.markUserAsViewed(1, 1000L)
+        local.replaceRemoteSnapshot(listOf(entity(2, "Current")))
+        // User 1 is now stale
+        local.deleteNote(1) // This triggers deleteStaleUserWithoutLocalData internally
+        assertEquals(1, dao.observeUser(1).first()?.id)
+    }
 }
 
 private fun entity(id: Int, name: String) = UserEntity(

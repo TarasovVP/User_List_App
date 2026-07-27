@@ -11,6 +11,7 @@ import com.example.userlistapp.core.navigation.UserDetailsDestination
 import com.example.userlistapp.core.ui.toUiText
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.usecase.DeleteUserNoteUseCase
+import com.example.userlistapp.domain.usecase.MarkUserAsViewedUseCase
 import com.example.userlistapp.domain.usecase.ObserveUserDetailsUseCase
 import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
@@ -44,12 +45,19 @@ class UserDetailsViewModel @Inject constructor(
     private val toggleFavorite: ToggleFavoriteUseCase,
     private val saveNote: SaveUserNoteUseCase,
     private val deleteNote: DeleteUserNoteUseCase,
+    markUserAsViewed: MarkUserAsViewedUseCase,
 ) : ViewModel() {
     private val userId: Int = savedStateHandle.toRoute<UserDetailsDestination>().userId
     private val draft = MutableStateFlow<String?>(null)
     private val operationInFlight = MutableStateFlow(false)
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
+
+    init {
+        viewModelScope.launch {
+            markUserAsViewed(userId)
+        }
+    }
 
     val uiState: StateFlow<UserDetailsUiState> = combine(
         observeUser(userId).map(::ObservedUser),

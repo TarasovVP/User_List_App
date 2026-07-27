@@ -17,6 +17,7 @@ interface UserRepository {
     suspend fun setFavorite(userId: Int, favorite: Boolean): AppResult<Unit>
     suspend fun saveNote(userId: Int, note: String): AppResult<Unit>
     suspend fun deleteNote(userId: Int): AppResult<Unit>
+    suspend fun markUserAsViewed(userId: Int, viewedAt: Long): AppResult<Unit>
 }
 
 interface SettingsRepository {

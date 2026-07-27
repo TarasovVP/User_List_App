@@ -9,6 +9,7 @@ import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.domain.usecase.DeleteUserNoteUseCase
+import com.example.userlistapp.domain.usecase.MarkUserAsViewedUseCase
 import com.example.userlistapp.domain.usecase.ObserveUserDetailsUseCase
 import com.example.userlistapp.domain.usecase.SaveUserNoteUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
@@ -158,12 +159,50 @@ class UserDetailsViewModelTest {
             assertFalse(viewModel.uiState.value.isSaving)
         }
 
+    @Test
+    fun `creation records timestamp exactly once with the route user ID`() =
+        runTest(main.dispatcher) {
+            val repository = DetailsRepository(sampleUser(id = 5))
+            val viewModel = viewModel(repository)
+            advanceUntilIdle()
+
+            assertEquals(1, repository.viewCalls)
+            assertEquals(5, repository.lastViewedUserId)
+        }
+
+    @Test
+    fun `repeated state collection does not record again`() = runTest(main.dispatcher) {
+        val repository = DetailsRepository(sampleUser())
+        val viewModel = viewModel(repository)
+        collectState(viewModel)
+        advanceUntilIdle()
+        assertEquals(1, repository.viewCalls)
+
+        collectState(viewModel)
+        advanceUntilIdle()
+        assertEquals(1, repository.viewCalls)
+    }
+
+    @Test
+    fun `creating a second ViewModel for the same user records a second time`() =
+        runTest(main.dispatcher) {
+            val repository = DetailsRepository(sampleUser(id = 5))
+            viewModel(repository)
+            advanceUntilIdle()
+            assertEquals(1, repository.viewCalls)
+
+            viewModel(repository)
+            advanceUntilIdle()
+            assertEquals(2, repository.viewCalls)
+        }
+
     private fun viewModel(repository: DetailsRepository) = UserDetailsViewModel(
         SavedStateHandle(mapOf("userId" to repository.currentUserId)),
         ObserveUserDetailsUseCase(repository),
         ToggleFavoriteUseCase(repository),
         SaveUserNoteUseCase(repository),
         DeleteUserNoteUseCase(repository),
+        MarkUserAsViewedUseCase(repository, { 100L })
     )
 
     private fun TestScope.collectState(viewModel: UserDetailsViewModel) {
@@ -181,6 +220,8 @@ private class DetailsRepository(
     val currentUserId: Int get() = user.value.id
     var toggleCalls = 0
     var deleteCalls = 0
+    var viewCalls = 0
+    var lastViewedUserId: Int? = null
 
     fun emit(value: User) {
         user.value = value
@@ -208,6 +249,12 @@ private class DetailsRepository(
         deleteCalls++
         beforeDelete()
         user.value = user.value.copy(note = null)
+        return AppResult.Success(Unit)
+    }
+
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long): AppResult<Unit> {
+        viewCalls++
+        lastViewedUserId = userId
         return AppResult.Success(Unit)
     }
 }

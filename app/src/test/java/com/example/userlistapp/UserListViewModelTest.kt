@@ -77,6 +77,26 @@ class UserListViewModelTest {
         }
 
     @Test
+    fun `sorting by recently viewed exposes correctly sorted users and selected sort`() =
+        runTest(main.dispatcher) {
+            val repo = FakeUserRepository(
+                listOf(
+                    sampleUser(1, "A", viewedAt = 100L),
+                    sampleUser(2, "B", viewedAt = 200L),
+                )
+            )
+            val vm = viewModel(repo)
+            collectState(vm)
+            advanceUntilIdle()
+
+            vm.setSort(UserSort.RECENTLY_VIEWED)
+            advanceUntilIdle()
+
+            assertEquals(listOf(2, 1), vm.uiState.value.users.map(User::id))
+            assertEquals(UserSort.RECENTLY_VIEWED, vm.uiState.value.sort)
+        }
+
+    @Test
     fun `successful empty load shows empty content rather than an error`() =
         runTest(main.dispatcher) {
             val vm = viewModel(FakeUserRepository(emptyList()))
@@ -302,6 +322,7 @@ private class DelayedCacheRepository : UserRepository {
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) = AppResult.Success(Unit)
 }
 
 private class FakeUserRepository(
@@ -326,4 +347,5 @@ private class FakeUserRepository(
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = AppResult.Success(Unit)
     override suspend fun saveNote(userId: Int, note: String) = AppResult.Success(Unit)
     override suspend fun deleteNote(userId: Int) = AppResult.Success(Unit)
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) = AppResult.Success(Unit)
 }

@@ -22,6 +22,7 @@ data class User(
     val isFavorite: Boolean = false,
     val note: String? = null,
     val noteModifiedAt: Long? = null,
+    val viewedAt: Long? = null,
 ) {
     val fullName: String
         get() = listOf(firstName, lastName).filter(String::isNotBlank)
@@ -43,7 +44,7 @@ data class AppSettings(
     val lastSuccessfulSync: Long? = null,
 )
 
-enum class UserSort { NAME_ASCENDING, NAME_DESCENDING }
+enum class UserSort { NAME_ASCENDING, NAME_DESCENDING, RECENTLY_VIEWED }
 
 enum class RefreshSource { INITIAL, MANUAL, RETRY, BACKGROUND }
 

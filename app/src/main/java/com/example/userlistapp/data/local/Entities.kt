@@ -51,6 +51,18 @@ data class FavoriteEntity(@PrimaryKey val userId: Int, val createdAt: Long)
 )
 data class UserNoteEntity(@PrimaryKey val userId: Int, val note: String, val modifiedAt: Long)
 
+@Entity(
+    tableName = RECENTLY_VIEWED_USERS_TABLE,
+    foreignKeys = [ForeignKey(
+        entity = UserEntity::class,
+        parentColumns = [ID_COLUMN],
+        childColumns = [USER_ID_COLUMN],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index(USER_ID_COLUMN)],
+)
+data class RecentlyViewedEntity(@PrimaryKey val userId: Int, val viewedAt: Long)
+
 data class UserWithLocal(
     val id: Int,
     val firstName: String,
@@ -72,12 +84,15 @@ data class UserWithLocal(
     @ColumnInfo(name = FAVORITE_CREATED_AT_COLUMN) val favoriteCreatedAt: Long?,
     val note: String?,
     val noteModifiedAt: Long?,
+    @ColumnInfo(name = VIEWED_AT_COLUMN) val viewedAt: Long? = null,
 )
 
 internal const val USERS_TABLE = "users"
 internal const val FAVORITE_USERS_TABLE = "favorite_users"
 internal const val USER_NOTES_TABLE = "user_notes"
+internal const val RECENTLY_VIEWED_USERS_TABLE = "recently_viewed_users"
 internal const val ID_COLUMN = "id"
 internal const val USER_ID_COLUMN = "userId"
 internal const val REMOTE_UPDATED_AT_COLUMN = "remoteUpdatedAt"
 internal const val FAVORITE_CREATED_AT_COLUMN = "favoriteCreatedAt"
+internal const val VIEWED_AT_COLUMN = "viewedAt"

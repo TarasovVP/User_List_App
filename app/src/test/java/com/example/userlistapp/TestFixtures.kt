@@ -29,6 +29,7 @@ fun sampleUser(
     lastName: String = "Lovelace",
     favorite: Boolean = false,
     note: String? = null,
+    viewedAt: Long? = null,
 ) = User(
     id = id,
     firstName = firstName,
@@ -48,4 +49,5 @@ fun sampleUser(
     country = "UK",
     isFavorite = favorite,
     note = note,
+    viewedAt = viewedAt,
 )

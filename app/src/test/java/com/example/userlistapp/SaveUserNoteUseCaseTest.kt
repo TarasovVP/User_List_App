@@ -78,4 +78,7 @@ private class NoteRepository : UserRepository {
     }
 
     override suspend fun deleteNote(userId: Int): AppResult<Unit> = AppResult.Success(Unit)
+
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long): AppResult<Unit> =
+        AppResult.Success(Unit)
 }

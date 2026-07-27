@@ -78,6 +78,9 @@ class UserRepositoryImpl(
         operation { local.saveNote(userId, note) }
 
     override suspend fun deleteNote(userId: Int) = operation { local.deleteNote(userId) }
+
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) =
+        operation { local.markUserAsViewed(userId, viewedAt) }
 }
 
 private suspend fun operation(block: suspend () -> Unit): AppResult<Unit> = try {
@@ -160,7 +163,24 @@ fun UserDto.toEntity(): UserEntity = UserEntity(
 )
 
 fun UserWithLocal.toDomain(): User = User(
-    id, firstName, lastName, age, email, phone, username, imageUrl, role,
-    companyName, department, jobTitle, street, city, state, country,
-    favoriteCreatedAt != null, note, noteModifiedAt,
+    id = id,
+    firstName = firstName,
+    lastName = lastName,
+    age = age,
+    email = email,
+    phone = phone,
+    username = username,
+    imageUrl = imageUrl,
+    role = role,
+    companyName = companyName,
+    department = department,
+    jobTitle = jobTitle,
+    street = street,
+    city = city,
+    state = state,
+    country = country,
+    isFavorite = favoriteCreatedAt != null,
+    note = note,
+    noteModifiedAt = noteModifiedAt,
+    viewedAt = viewedAt,
 )

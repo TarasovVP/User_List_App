@@ -7,10 +7,12 @@ import kotlinx.coroutines.flow.Flow
 
 private const val SELECT_WITH_LOCAL = """
     SELECT users.*, favorite_users.createdAt AS favoriteCreatedAt,
-        user_notes.note AS note, user_notes.modifiedAt AS noteModifiedAt
+        user_notes.note AS note, user_notes.modifiedAt AS noteModifiedAt,
+        recently_viewed_users.viewedAt AS viewedAt
     FROM users
     LEFT JOIN favorite_users ON users.id = favorite_users.userId
     LEFT JOIN user_notes ON users.id = user_notes.userId
+    LEFT JOIN recently_viewed_users ON users.id = recently_viewed_users.userId
 """
 private const val SELECT_USER_BY_ID = "$SELECT_WITH_LOCAL WHERE users.id = :userId"
 private const val DELETE_FAVORITE =
@@ -28,6 +30,7 @@ private const val DELETE_STALE_USERS = """
     DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
     AND id NOT IN (SELECT userId FROM favorite_users)
     AND id NOT IN (SELECT userId FROM user_notes)
+    AND id NOT IN (SELECT userId FROM recently_viewed_users)
 """
 private const val MARK_USERS_STALE =
     "UPDATE users SET remoteUpdatedAt = :staleBatchId"
@@ -39,6 +42,7 @@ private const val DELETE_STALE_USER_WITHOUT_LOCAL_DATA = """
     )
     AND id NOT IN (SELECT userId FROM favorite_users)
     AND id NOT IN (SELECT userId FROM user_notes)
+    AND id NOT IN (SELECT userId FROM recently_viewed_users)
 """
 
 @Dao
@@ -57,6 +61,9 @@ interface UserDao {
 
     @Upsert
     suspend fun upsertNote(note: UserNoteEntity)
+
+    @Upsert
+    suspend fun upsertRecentlyViewed(recentlyViewed: RecentlyViewedEntity)
 
     @Query(REPLACE_NOTE_PAYLOAD)
     suspend fun replaceNotePayload(

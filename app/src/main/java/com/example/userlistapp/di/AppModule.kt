@@ -8,6 +8,8 @@ import androidx.room.Room
 import com.example.userlistapp.BuildConfig
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.IoDispatcher
+import com.example.userlistapp.core.common.SystemTimeProvider
+import com.example.userlistapp.core.common.TimeProvider
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.FirebaseAppQualityMonitor
 import com.example.userlistapp.data.local.LocalAvatarStorage
@@ -76,6 +78,10 @@ object AppModule {
     fun accountImplementationFlag(
         implementation: LocalAccountImplementationFlag,
     ): AccountImplementationFlag = implementation
+
+    @Provides
+    @Singleton
+    fun timeProvider(): TimeProvider = SystemTimeProvider
 
     @Provides
     @Singleton
@@ -158,7 +164,7 @@ object AppModule {
     @Singleton
     fun database(@ApplicationContext context: Context): UserDatabase =
         Room.databaseBuilder(context, UserDatabase::class.java, USER_DATABASE_NAME)
-            .addMigrations(UserDatabase.MIGRATION_1_2).build()
+            .addMigrations(UserDatabase.MIGRATION_1_2, UserDatabase.MIGRATION_2_3).build()
 
     @Provides
     @Singleton

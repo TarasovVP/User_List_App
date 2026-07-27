@@ -20,6 +20,7 @@ import androidx.test.uiautomator.Until
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.EMPTY
+import com.example.userlistapp.core.common.TimeProvider
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.NoOpAppQualityMonitor
 import com.example.userlistapp.core.ui.UiTestTags
@@ -49,7 +50,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -67,6 +67,10 @@ class MainActivityFlowTest {
     private val users = FakeUserRepository()
     private val auth = FakeAuthSessionRepository()
     private val realtime = FakeUserRealtimeClient()
+
+    @BindValue
+    @JvmField
+    val timeProvider: TimeProvider = TimeProvider { 123456789L }
 
     @BindValue
     @JvmField
@@ -162,9 +166,7 @@ class MainActivityFlowTest {
         compose.waitForText("Emily Johnson")
 
         compose.onNodeWithText(context.getString(R.string.choose_local_photo)).performClick()
-        device.waitForIdle()
-
-        assertNotEquals(appPackage, device.currentPackageName)
+        assertTrue(device.wait(Until.gone(By.pkg(appPackage)), SYSTEM_UI_TIMEOUT_MILLIS))
 
         device.pressBack()
         assertTrue(device.wait(Until.hasObject(By.pkg(appPackage)), SYSTEM_UI_TIMEOUT_MILLIS))
@@ -274,6 +276,9 @@ private class FakeUserRepository : UserRepository {
         }
         return AppResult.Success(Unit)
     }
+
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long): AppResult<Unit> =
+        AppResult.Success(Unit)
 }
 
 private class FakeSettingsRepository : SettingsRepository {

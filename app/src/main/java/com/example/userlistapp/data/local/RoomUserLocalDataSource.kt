@@ -56,6 +56,9 @@ class RoomUserLocalDataSource(
         }
     }
 
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) =
+        dao.upsertRecentlyViewed(RecentlyViewedEntity(userId, viewedAt))
+
     private suspend fun decryptAndMigrate(row: UserWithLocal): UserWithLocal {
         val payload = row.note ?: return row
         val decrypted = noteCipher.decrypt(row.id, payload)

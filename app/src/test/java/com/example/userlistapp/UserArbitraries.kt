@@ -32,6 +32,9 @@ internal object UserArbitraries {
             state = word.bind(),
             country = word.bind(),
             isFavorite = Arb.boolean().bind(),
+            note = null,
+            noteModifiedAt = null,
+            viewedAt = if (Arb.boolean().bind()) Arb.int(0..1_000_000).bind().toLong() else null,
         )
     }
 }

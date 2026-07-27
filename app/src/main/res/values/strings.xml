@@ -19,6 +19,7 @@
     <string name="sort">Sort</string>
     <string name="sort_az">Name A–Z</string>
     <string name="sort_za">Name Z–A</string>
+    <string name="sort_recently_viewed">Recently viewed</string>
     <string name="retry">Retry</string>
     <string name="no_users">No users are available.</string>
     <string name="no_results">No users match your search and filters.</string>

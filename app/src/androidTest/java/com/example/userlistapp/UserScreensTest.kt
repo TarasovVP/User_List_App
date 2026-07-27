@@ -117,6 +117,50 @@ class UserScreensTest {
     }
 
     @Test
+    fun listSortingExposesRecentlyViewedOption() {
+        var selectedSort by mutableStateOf<com.example.userlistapp.domain.model.UserSort>(com.example.userlistapp.domain.model.UserSort.NAME_ASCENDING)
+        compose.setContent {
+            UserListTheme(ThemeMode.LIGHT) {
+                val listState = UserListUiState(
+                    users = listOf(user(1, "Ada")),
+                    hasCachedUsers = true,
+                    isInitialLoading = false,
+                    sort = selectedSort,
+                )
+                UserListScreen(
+                    state = listState,
+                    contentState = listState.toContentState(initialErrorMessage = null),
+                    onQuery = {},
+                    onSort = { selectedSort = it },
+                    onFavoritesOnly = {},
+                    onRefresh = {},
+                    onUser = {},
+                    onFavorite = {},
+                    onSettings = {},
+                    snackbar = SnackbarHostState(),
+                )
+            }
+        }
+
+        val azLabel = context.getString(R.string.sort_az)
+        val recentlyViewedLabel = context.getString(R.string.sort_recently_viewed)
+
+        // Opens the sort dropdown by clicking the current “Name A–Z” label.
+        compose.onNodeWithText(azLabel).performClick()
+
+        // Verifies that “Recently viewed” is displayed as a menu option.
+        compose.onNodeWithText(recentlyViewedLabel).assertIsDisplayed()
+
+        // Clicks “Recently viewed”.
+        compose.onNodeWithText(recentlyViewedLabel).performClick()
+
+        // Verifies that onSort received UserSort.RECENTLY_VIEWED
+        // and verifies the selected chip now displays “Recently viewed”.
+        assertEquals(com.example.userlistapp.domain.model.UserSort.RECENTLY_VIEWED, selectedSort)
+        compose.onNodeWithText(recentlyViewedLabel).assertIsDisplayed()
+    }
+
+    @Test
     fun listTransitionsThroughLoadingErrorEmptyAndLoadedStates() {
         var state by mutableStateOf(UserListUiState())
         var resolvedError by mutableStateOf<String?>(null)

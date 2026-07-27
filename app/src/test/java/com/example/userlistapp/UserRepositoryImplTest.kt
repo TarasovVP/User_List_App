@@ -226,6 +226,28 @@ class UserRepositoryImplTest {
         assertTrue(repo.deleteNote(4) is AppResult.Success)
         assertEquals(null, local.note)
     }
+
+    @Test
+    fun `mark user as viewed forwards data to local storage`() = runTest {
+        val local = FakeLocal()
+        val repo = UserRepositoryImpl(FakeRemote(emptyList()), local, Dispatchers.Unconfined)
+        val result = repo.markUserAsViewed(1, 1000L)
+        assertTrue(result is AppResult.Success)
+        assertEquals(1, local.viewedUserId)
+        assertEquals(1000L, local.viewedAt)
+    }
+
+    @Test
+    fun `repository maps local storage failure to storage error`() = runTest {
+        val local = object : FakeLocal() {
+            override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) {
+                throw android.database.sqlite.SQLiteException("Storage error")
+            }
+        }
+        val repo = UserRepositoryImpl(FakeRemote(emptyList()), local, Dispatchers.Unconfined)
+        val result = repo.markUserAsViewed(1, 1000L)
+        assertEquals(AppResult.Failure(AppError.Storage), result)
+    }
 }
 
 private class RecordingQualityMonitor : AppQualityMonitor {
@@ -272,9 +294,11 @@ private class FakeRemote(private val result: List<UserDto>) : UserRemoteDataSour
     override suspend fun getUsers() = result
 }
 
-private class FakeLocal : UserLocalDataSource {
+private open class FakeLocal : UserLocalDataSource {
     var saved: List<UserEntity> = emptyList()
     var note: String? = null
+    var viewedUserId: Int? = null
+    var viewedAt: Long? = null
     val favoriteIds = mutableSetOf<Int>()
     val notes = mutableMapOf<Int, String>()
     private val rows = MutableStateFlow<List<UserWithLocal>>(emptyList())
@@ -300,6 +324,11 @@ private class FakeLocal : UserLocalDataSource {
     override suspend fun deleteNote(userId: Int) {
         note = null
         notes.remove(userId)
+    }
+
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long) {
+        viewedUserId = userId
+        this.viewedAt = viewedAt
     }
 }
 

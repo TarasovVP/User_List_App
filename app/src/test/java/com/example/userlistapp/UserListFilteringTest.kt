@@ -51,6 +51,94 @@ class UserListFilteringTest {
     }
 
     @Test
+    fun `sorting by recently viewed uses timestamp name and then id`() {
+        val users = listOf(
+            sampleUser(id = 1, firstName = "A", viewedAt = 100L),
+            sampleUser(id = 2, firstName = "B", viewedAt = 200L),
+            sampleUser(id = 3, firstName = "C", viewedAt = 200L),
+            sampleUser(id = 4, firstName = "D", viewedAt = null),
+            sampleUser(id = 5, firstName = "E", viewedAt = null),
+        )
+
+        val result = filterAndSortUsers(
+            users,
+            String.EMPTY,
+            UserSort.RECENTLY_VIEWED,
+            favoritesOnly = false
+        )
+
+        assertEquals(listOf(2, 3, 1, 4, 5), result.map { it.id })
+    }
+
+    @Test
+    fun `sorting by recently viewed is case insensitive for name ties`() {
+        val users = listOf(
+            sampleUser(id = 2, firstName = "b", viewedAt = 200L),
+            sampleUser(id = 1, firstName = "A", viewedAt = 200L),
+        )
+
+        val result = filterAndSortUsers(
+            users,
+            String.EMPTY,
+            UserSort.RECENTLY_VIEWED,
+            favoritesOnly = false
+        )
+
+        assertEquals(listOf(1, 2), result.map { it.id })
+    }
+
+    @Test
+    fun `sorting by recently viewed uses id as final tie-breaker for case-only name differences`() {
+        val users = listOf(
+            sampleUser(id = 2, firstName = "alpha User", viewedAt = 100L),
+            sampleUser(id = 1, firstName = "ALPHA User", viewedAt = 100L),
+        )
+
+        val result = filterAndSortUsers(
+            users,
+            String.EMPTY,
+            UserSort.RECENTLY_VIEWED,
+            favoritesOnly = false
+        )
+
+        assertEquals(listOf(1, 2), result.map { it.id })
+    }
+
+    @Test
+    fun `sorting by recently viewed uses id tie-breaker for unviewed users`() {
+        val users = listOf(
+            sampleUser(id = 2, firstName = "A", viewedAt = null),
+            sampleUser(id = 1, firstName = "A", viewedAt = null),
+        )
+
+        val result = filterAndSortUsers(
+            users,
+            String.EMPTY,
+            UserSort.RECENTLY_VIEWED,
+            favoritesOnly = false
+        )
+
+        assertEquals(listOf(1, 2), result.map { it.id })
+    }
+
+    @Test
+    fun `sorting by recently viewed combines with favoritesOnly filter`() {
+        val users = listOf(
+            sampleUser(id = 1, firstName = "A", viewedAt = 200L, favorite = false),
+            sampleUser(id = 2, firstName = "B", viewedAt = 100L, favorite = true),
+        )
+
+        val result = filterAndSortUsers(
+            users,
+            String.EMPTY,
+            UserSort.RECENTLY_VIEWED,
+            favoritesOnly = true
+        )
+
+        assertEquals(listOf(2), result.map { it.id })
+    }
+
+    @Test
     fun `favorites filter combines with search and sorting`() {
         val result = filterAndSortUsers(
             users = listOf(grace, ada),
