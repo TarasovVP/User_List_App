@@ -2,10 +2,10 @@ package com.example.userlistapp.feature.users.list
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,8 +73,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
@@ -87,10 +87,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
 import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.TrackJankStates
@@ -173,6 +173,7 @@ fun UserListUiState.toContentState(initialErrorMessage: String?): UserListConten
             "An initial error must be resolved before rendering UserListScreen"
         },
     )
+
     users.isEmpty() -> UserListContentState.Empty
     else -> UserListContentState.Loaded
 }
@@ -334,7 +335,7 @@ fun UserListScreen(
             contentKey = { it::class },
             transitionSpec = {
                 fadeIn(tween(durationMillis = 220)) togetherWith
-                    fadeOut(tween(durationMillis = 120))
+                        fadeOut(tween(durationMillis = 120))
             },
             modifier = Modifier.fillMaxSize(),
             label = UiAnimationLabels.USER_LIST_CONTENT,
@@ -372,7 +373,7 @@ fun UserListScreen(
 
                 UserListContentState.Empty,
                 UserListContentState.Loaded,
-                -> RefreshableUserContent(
+                    -> RefreshableUserContent(
                     state = state,
                     showEmptyState = targetState == UserListContentState.Empty,
                     padding = padding,
@@ -479,6 +480,7 @@ private fun RealtimeCard(
             connectionState.attempt,
             connectionState.maxAttempts,
         )
+
         RealtimeConnectionState.Failed -> stringResource(R.string.websocket_failed)
     }
     Card(
@@ -599,7 +601,8 @@ private fun UserCard(
         if (user.isFavorite) R.string.favorite else R.string.not_favorite,
     )
     Card(
-        onClick = onClick, modifier = modifier
+        onClick = onClick,
+        modifier = modifier
             .fillMaxWidth()
             .testTag(UiTestTags.user(user.id))
             .semantics {

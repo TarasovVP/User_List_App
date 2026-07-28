@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.example.userlistapp.core.common.AppError
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.EMPTY
+import com.example.userlistapp.data.realtime.RealtimeConnectionState
+import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.SessionState
@@ -16,8 +18,6 @@ import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
-import com.example.userlistapp.data.realtime.RealtimeConnectionState
-import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.feature.users.list.UserListViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify

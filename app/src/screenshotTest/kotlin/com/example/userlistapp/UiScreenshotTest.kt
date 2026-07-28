@@ -14,8 +14,8 @@ import com.example.userlistapp.feature.account.AuthUiState
 import com.example.userlistapp.feature.account.SignInContent
 import com.example.userlistapp.feature.users.details.UserDetailsScreen
 import com.example.userlistapp.feature.users.details.UserDetailsUiState
-import com.example.userlistapp.feature.users.list.UserListScreen
 import com.example.userlistapp.feature.users.list.UserListContentState
+import com.example.userlistapp.feature.users.list.UserListScreen
 import com.example.userlistapp.feature.users.list.UserListUiState
 import com.example.userlistapp.ui.theme.UserListTheme
 

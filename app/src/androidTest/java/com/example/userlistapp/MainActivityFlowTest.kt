@@ -1,8 +1,8 @@
 package com.example.userlistapp
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -27,7 +27,6 @@ import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.data.realtime.RealtimeConnectionState
 import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.di.AppModule
-import com.example.userlistapp.feature.account.AccountImplementationFlag
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.RefreshSource
@@ -39,6 +38,7 @@ import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.domain.repository.UserRepository
+import com.example.userlistapp.feature.account.AccountImplementationFlag
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -46,8 +46,8 @@ import dagger.hilt.android.testing.UninstallModules
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -240,6 +240,7 @@ private class FakeAuthSessionRepository : AuthSessionRepository {
         localAvatarUri.value = sourceUri
         return AppResult.Success(Unit)
     }
+
     override suspend fun removeLocalAvatar() = AppResult.Success(Unit)
 }
 

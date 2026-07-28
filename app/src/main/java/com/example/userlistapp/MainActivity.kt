@@ -15,8 +15,8 @@ import com.example.userlistapp.core.quality.JankMonitor
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.feature.account.AccountImplementationSelector
 import com.example.userlistapp.navigation.AppNavigation
-import com.example.userlistapp.settings.SettingsFeatureLauncher
 import com.example.userlistapp.settings.SettingsDeliveryFeedback
+import com.example.userlistapp.settings.SettingsFeatureLauncher
 import com.example.userlistapp.ui.theme.UserListTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var qualityMonitor: AppQualityMonitor
+
     @Inject
     lateinit var accountImplementationSelector: AccountImplementationSelector
     private lateinit var jankMonitor: JankMonitor
@@ -49,7 +50,7 @@ class MainActivity : ComponentActivity() {
             val settings by viewModel.settings.collectAsStateWithLifecycle()
             val session by viewModel.sessionState.collectAsStateWithLifecycle()
             val settingsInstallState by
-                settingsFeatureLauncher.state.collectAsStateWithLifecycle()
+            settingsFeatureLauncher.state.collectAsStateWithLifecycle()
             UserListTheme(settings.themeMode) {
                 if (session !is SessionState.Initializing) {
                     AppNavigation(

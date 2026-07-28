@@ -30,28 +30,28 @@ fun SettingsDeliveryFeedback(
         SettingsInstallState.Canceled,
         is SettingsInstallState.Failed,
             -> AlertDialog(
-                onDismissRequest = onDismiss,
-                title = { Text(stringResource(R.string.settings_install_failed_title)) },
-                text = {
-                    Text(
-                        stringResource(
-                            if (state == SettingsInstallState.Canceled) {
-                                R.string.settings_install_canceled
-                            } else {
-                                R.string.settings_install_failed
-                            },
-                        ),
-                    )
-                },
-                confirmButton = {
-                    Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
-                },
-                dismissButton = {
-                    OutlinedButton(onClick = onDismiss) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                },
-            )
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.settings_install_failed_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (state == SettingsInstallState.Canceled) {
+                            R.string.settings_install_canceled
+                        } else {
+                            R.string.settings_install_failed
+                        },
+                    ),
+                )
+            },
+            confirmButton = {
+                Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
 
         else -> AlertDialog(
             onDismissRequest = {},
@@ -68,7 +68,9 @@ fun SettingsDeliveryFeedback(
                             }
                             LinearProgressIndicator(
                                 progress = { progress.coerceIn(0f, 1f) },
-                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
                             )
                             Text(
                                 stringResource(
@@ -80,7 +82,9 @@ fun SettingsDeliveryFeedback(
                         }
 
                         else -> LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
                         )
                     }
                 }

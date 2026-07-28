@@ -1,7 +1,7 @@
 package com.example.userlistapp
 
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,8 +10,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertAny
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -47,13 +47,13 @@ import com.example.userlistapp.feature.users.list.UserListUiState
 import com.example.userlistapp.feature.users.list.toContentState
 import com.example.userlistapp.ui.theme.UserListTheme
 import com.example.userlistapp.ui.theme.extendedColors
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 class UserScreensTest {
     @get:Rule
@@ -288,7 +288,7 @@ class UserScreensTest {
         first.tryEmit(UiText(R.string.error_network))
         compose.waitUntil {
             snackbar.currentSnackbarData?.visuals?.message ==
-                context.getString(R.string.error_network)
+                    context.getString(R.string.error_network)
         }
 
         compose.runOnIdle {
@@ -305,7 +305,7 @@ class UserScreensTest {
         second.tryEmit(UiText(R.string.error_storage))
         compose.waitUntil {
             snackbar.currentSnackbarData?.visuals?.message ==
-                context.getString(R.string.error_storage)
+                    context.getString(R.string.error_storage)
         }
     }
 

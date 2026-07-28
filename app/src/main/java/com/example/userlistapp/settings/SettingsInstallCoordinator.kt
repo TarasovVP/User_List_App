@@ -10,6 +10,7 @@ sealed interface SettingsInstallState {
     data object AwaitingConfirmation : SettingsInstallState
     data class Downloading(val downloadedBytes: Long, val totalBytes: Long) :
         SettingsInstallState
+
     data object Installing : SettingsInstallState
     data object Canceling : SettingsInstallState
     data object Installed : SettingsInstallState

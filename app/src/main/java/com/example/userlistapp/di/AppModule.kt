@@ -22,13 +22,13 @@ import com.example.userlistapp.data.local.UserLocalDataSource
 import com.example.userlistapp.data.preferences.SettingsRepositoryImpl
 import com.example.userlistapp.data.preferences.authSessionDataStore
 import com.example.userlistapp.data.preferences.settingsDataStore
+import com.example.userlistapp.data.realtime.OkHttpUserRealtimeClient
+import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.data.remote.AuthApi
 import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
 import com.example.userlistapp.data.remote.UserApi
 import com.example.userlistapp.data.remote.UserRemoteDataSource
-import com.example.userlistapp.data.realtime.OkHttpUserRealtimeClient
-import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.repository.UserRepositoryImpl
 import com.example.userlistapp.domain.repository.AuthSessionGuard

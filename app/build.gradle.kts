@@ -20,6 +20,7 @@ val releaseSigningProperties = Properties().apply {
         releaseSigningPropertiesFile.inputStream().use { load(it) }
     }
 }
+
 fun releaseSigningValue(environmentName: String, propertyName: String): String? =
     providers.environmentVariable(environmentName).orNull
         ?: releaseSigningProperties.getProperty(propertyName)

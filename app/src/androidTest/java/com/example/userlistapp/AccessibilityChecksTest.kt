@@ -92,12 +92,14 @@ class AccessibilityChecksTest {
                         onClearAvatarError = {},
                         onSettings = {},
                     )
+
                     AccountTestScreen.SIGN_IN -> SignInContent(
                         state = AuthUiState(session = SessionState.SignedOut),
                         onDismiss = {},
                         onCredentialsChanged = {},
                         onSubmit = { _, _ -> },
                     )
+
                     AccountTestScreen.MODULAR -> ModularAccountScreen(
                         state = AccountFeatureState(session = AccountSession.SignedOut),
                         actions = AccountFeatureActions(

@@ -33,10 +33,10 @@ import com.example.userlistapp.core.navigation.UserDetailsDestination
 import com.example.userlistapp.core.navigation.UsersDestination
 import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.domain.model.SessionState
-import com.example.userlistapp.feature.account.AccountScreen
 import com.example.userlistapp.feature.account.AccountImplementation
-import com.example.userlistapp.feature.account.AuthViewModel
+import com.example.userlistapp.feature.account.AccountScreen
 import com.example.userlistapp.feature.account.AuthUiState
+import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.feature.account.AuthenticationRequired
 import com.example.userlistapp.feature.account.SignInSheet
 import com.example.userlistapp.feature.account.modular.AccountContent

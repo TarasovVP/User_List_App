@@ -24,9 +24,9 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.IOException
 import retrofit2.HttpException
 import retrofit2.Response
+import java.io.IOException
 
 class UserRepositoryImplTest {
     @Test

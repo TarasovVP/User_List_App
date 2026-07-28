@@ -13,7 +13,8 @@ internal class PlaySettingsInstallGateway(
     private val confirmationLauncher: ActivityResultLauncher<IntentSenderRequest>,
     private val classLoader: ClassLoader,
 ) : SettingsInstallGateway {
-    private val listeners = mutableMapOf<(InstallSession) -> Unit, SplitInstallStateUpdatedListener>()
+    private val listeners =
+        mutableMapOf<(InstallSession) -> Unit, SplitInstallStateUpdatedListener>()
     private val confirmationStates = mutableMapOf<Int, SplitInstallSessionState>()
 
     override fun isInstalled(): Boolean =
@@ -70,6 +71,7 @@ private fun SplitInstallSessionState.toInstallSession() = InstallSession(
         SplitInstallSessionStatus.PENDING -> InstallStatus.PENDING
         SplitInstallSessionStatus.REQUIRES_USER_CONFIRMATION ->
             InstallStatus.REQUIRES_USER_CONFIRMATION
+
         SplitInstallSessionStatus.DOWNLOADING -> InstallStatus.DOWNLOADING
         SplitInstallSessionStatus.DOWNLOADED -> InstallStatus.DOWNLOADED
         SplitInstallSessionStatus.INSTALLING -> InstallStatus.INSTALLING

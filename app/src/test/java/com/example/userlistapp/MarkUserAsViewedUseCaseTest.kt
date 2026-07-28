@@ -38,9 +38,12 @@ class MarkUserAsViewedUseCaseTest {
 private open class UserRepositoryStub : UserRepository {
     override fun observeUsers() = throw NotImplementedError()
     override fun observeUser(userId: Int) = throw NotImplementedError()
-    override suspend fun refreshUsers(source: com.example.userlistapp.domain.model.RefreshSource) = throw NotImplementedError()
+    override suspend fun refreshUsers(source: com.example.userlistapp.domain.model.RefreshSource) =
+        throw NotImplementedError()
+
     override suspend fun setFavorite(userId: Int, favorite: Boolean) = throw NotImplementedError()
     override suspend fun saveNote(userId: Int, note: String) = throw NotImplementedError()
     override suspend fun deleteNote(userId: Int) = throw NotImplementedError()
-    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long): AppResult<Unit> = throw NotImplementedError()
+    override suspend fun markUserAsViewed(userId: Int, viewedAt: Long): AppResult<Unit> =
+        throw NotImplementedError()
 }
