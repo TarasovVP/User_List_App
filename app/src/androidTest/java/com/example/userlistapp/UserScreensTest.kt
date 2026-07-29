@@ -1,11 +1,17 @@
 package com.example.userlistapp
 
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertAny
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -25,6 +31,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.UiTestTags
+import com.example.userlistapp.core.ui.UiTextSnackbarEffect
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode
@@ -36,11 +43,16 @@ import com.example.userlistapp.feature.users.details.UserDetailsScreen
 import com.example.userlistapp.feature.users.details.UserDetailsUiState
 import com.example.userlistapp.feature.users.list.UserListScreen
 import com.example.userlistapp.feature.users.list.UserListUiState
+import com.example.userlistapp.feature.users.list.toContentState
 import com.example.userlistapp.ui.theme.UserListTheme
+import com.example.userlistapp.ui.theme.extendedColors
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 class UserScreensTest {
     @get:Rule
@@ -56,13 +68,15 @@ class UserScreensTest {
         var users by mutableStateOf(listOf(user(1, "Ada"), user(2, "Grace")))
         compose.setContent {
             UserListTheme(ThemeMode.LIGHT) {
+                val listState = UserListUiState(
+                    users = users.filter { it.fullName.contains(query, true) },
+                    hasCachedUsers = true,
+                    isInitialLoading = false,
+                    query = query,
+                )
                 UserListScreen(
-                    UserListUiState(
-                        users = users.filter { it.fullName.contains(query, true) },
-                        hasCachedUsers = true,
-                        isInitialLoading = false,
-                        query = query,
-                    ),
+                    listState,
+                    listState.toContentState(initialErrorMessage = null),
                     onQuery = { query = it },
                     onSort = {},
                     onFavoritesOnly = {},
@@ -80,8 +94,14 @@ class UserScreensTest {
         }
 
         compose.onNodeWithText("Ada User").assertIsDisplayed()
+        compose.onNodeWithTag(UiTestTags.favorite(1)).assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.StateDescription,
+                context.getString(R.string.not_favorite),
+            ),
+        )
         compose.onNodeWithTag(UiTestTags.favorite(1)).performClick()
-        compose.onNodeWithContentDescription(context.getString(R.string.favorite))
+        compose.onNodeWithContentDescription(context.getString(R.string.remove_from_favorites))
             .assertIsDisplayed()
         compose.onNodeWithContentDescription(context.getString(R.string.search_users))
             .performClick()
@@ -93,6 +113,113 @@ class UserScreensTest {
         compose.runOnIdle { assertEquals(2, opened) }
         compose.onNodeWithContentDescription(context.getString(R.string.settings)).performClick()
         compose.runOnIdle { assertTrue(settings) }
+    }
+
+    @Test
+    fun listTransitionsThroughLoadingErrorEmptyAndLoadedStates() {
+        var state by mutableStateOf(UserListUiState())
+        var resolvedError by mutableStateOf<String?>(null)
+        compose.setContent {
+            UserListTheme(ThemeMode.LIGHT) {
+                UserListScreen(
+                    state = state,
+                    contentState = state.toContentState(resolvedError),
+                    onQuery = {},
+                    onSort = {},
+                    onFavoritesOnly = {},
+                    onRefresh = {},
+                    onUser = {},
+                    onFavorite = {},
+                    onSettings = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag(UiTestTags.USER_LIST_LOADING).assertIsDisplayed()
+
+        compose.runOnIdle {
+            resolvedError = "Network unavailable"
+            state = UserListUiState(
+                isInitialLoading = false,
+                initialError = UiText(R.string.error_network),
+            )
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag(UiTestTags.USER_LIST_ERROR).assertIsDisplayed()
+
+        compose.runOnIdle {
+            resolvedError = null
+            state = UserListUiState(isInitialLoading = false)
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag(UiTestTags.USER_LIST_EMPTY).assertIsDisplayed()
+
+        compose.runOnIdle {
+            state = UserListUiState(
+                users = listOf(user(1, "Ada")),
+                hasCachedUsers = true,
+                isInitialLoading = false,
+            )
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag(UiTestTags.USER_LIST).assertIsDisplayed()
+    }
+
+    @Test
+    fun extendedThemeProvidesDifferentFavoriteColorsForLightAndDarkModes() {
+        var lightFavorite = androidx.compose.ui.graphics.Color.Unspecified
+        var darkFavorite = androidx.compose.ui.graphics.Color.Unspecified
+        compose.setContent {
+            UserListTheme(ThemeMode.LIGHT) {
+                val color = MaterialTheme.extendedColors.favoriteSelected
+                SideEffect { lightFavorite = color }
+            }
+            UserListTheme(ThemeMode.DARK) {
+                val color = MaterialTheme.extendedColors.favoriteSelected
+                SideEffect { darkFavorite = color }
+            }
+        }
+
+        compose.runOnIdle {
+            assertNotEquals(androidx.compose.ui.graphics.Color.Unspecified, lightFavorite)
+            assertNotEquals(androidx.compose.ui.graphics.Color.Unspecified, darkFavorite)
+            assertNotEquals(lightFavorite, darkFavorite)
+        }
+    }
+
+    @Test
+    fun snackbarCollectionRestartsWhenEventSourceChanges() {
+        val first = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
+        val second = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
+        var events by mutableStateOf<Flow<UiText>>(first)
+        val snackbar = SnackbarHostState()
+        compose.setContent {
+            UiTextSnackbarEffect(events, snackbar)
+        }
+
+        compose.waitForIdle()
+        first.tryEmit(UiText(R.string.error_network))
+        compose.waitUntil {
+            snackbar.currentSnackbarData?.visuals?.message ==
+                context.getString(R.string.error_network)
+        }
+
+        compose.runOnIdle {
+            snackbar.currentSnackbarData?.dismiss()
+            events = second
+        }
+        compose.waitForIdle()
+        first.tryEmit(UiText(R.string.error_storage))
+        compose.waitForIdle()
+        compose.runOnIdle {
+            assertEquals(null, snackbar.currentSnackbarData)
+        }
+
+        second.tryEmit(UiText(R.string.error_storage))
+        compose.waitUntil {
+            snackbar.currentSnackbarData?.visuals?.message ==
+                context.getString(R.string.error_storage)
+        }
     }
 
     @Test
@@ -119,13 +246,16 @@ class UserScreensTest {
         }
 
         compose.onNodeWithTag(UiTestTags.FAVORITE_BUTTON).performClick()
-        compose.onNodeWithContentDescription(context.getString(R.string.favorite))
+        compose.onNodeWithContentDescription(context.getString(R.string.remove_from_favorites))
             .assertIsDisplayed()
         compose.onNodeWithTag(UiTestTags.NOTE_FIELD).performTextInput("Remember this")
         compose.onNodeWithTag(UiTestTags.SAVE_NOTE).assertIsEnabled()
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithTag(UiTestTags.SAVE_NOTE).assertIsNotEnabled()
         compose.onNodeWithTag(UiTestTags.NOTE_FIELD).assertIsDisplayed()
+        compose.onNodeWithText("Ada User").assert(
+            SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading),
+        )
     }
 
     @Test
@@ -196,6 +326,7 @@ class UserScreensTest {
         }
 
         compose.onNodeWithText(context.getString(R.string.account_title)).assertIsDisplayed()
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         compose.onNodeWithContentDescription(context.getString(R.string.settings)).performClick()
         compose.runOnIdle { assertTrue(settingsOpened) }
         compose.onNodeWithText(context.getString(R.string.guest_title)).assertIsDisplayed()
@@ -224,6 +355,8 @@ class UserScreensTest {
         }
 
         val error = context.getString(R.string.error_invalid_credentials)
+        compose.onAllNodesWithText(context.getString(R.string.sign_in))
+            .assertAny(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         compose.onNodeWithText(error).assertIsDisplayed()
         compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).assertIsNotEnabled()
         compose.onNodeWithTag(UiTestTags.LOGIN_USERNAME).performTextInput("emilys")

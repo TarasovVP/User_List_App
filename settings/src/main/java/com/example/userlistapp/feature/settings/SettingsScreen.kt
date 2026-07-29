@@ -31,19 +31,19 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
+import com.example.userlistapp.core.ui.UiTextSnackbarEffect
 import com.example.userlistapp.domain.model.SyncState
 import com.example.userlistapp.domain.model.ThemeMode
 import java.text.DateFormat
@@ -53,10 +53,7 @@ import java.util.Date
 fun SettingsRoute(onBack: () -> Unit, viewModel: SettingsViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) }
-    }
+    UiTextSnackbarEffect(viewModel.events, snackbar)
     SettingsScreen(state, onBack, viewModel::setTheme, viewModel::setBackgroundSync, snackbar)
 }
 
@@ -80,7 +77,12 @@ fun SettingsScreen(
         TopAppBar(
             modifier = Modifier.shadow(4.dp),
             expandedHeight = 56.dp,
-            title = { Text(stringResource(R.string.settings)) },
+            title = {
+                Text(
+                    stringResource(R.string.settings),
+                    modifier = Modifier.semantics { heading() },
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -98,7 +100,11 @@ fun SettingsScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.theme),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ThemeMode.entries.forEach { mode ->
                     val selected = state.settings.themeMode == mode
@@ -156,7 +162,8 @@ fun SettingsScreen(
             )
             Text(
                 stringResource(R.string.background_sync),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
             )
             Surface(
                 modifier = Modifier.fillMaxWidth(),

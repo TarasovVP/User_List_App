@@ -7,6 +7,9 @@ object UiTestTags {
     const val SIGN_IN_OPEN = "sign_in_open"
     const val SEARCH = "search"
     const val USER_LIST = "user_list"
+    const val USER_LIST_LOADING = "user_list_loading"
+    const val USER_LIST_ERROR = "user_list_error"
+    const val USER_LIST_EMPTY = "user_list_empty"
     const val FAVORITE_BUTTON = "favorite_button"
     const val NOTE_FIELD = "note_field"
     const val DELETE_NOTE = "delete_note"
@@ -23,5 +26,5 @@ object UiTestTags {
 object UiAnimationLabels {
     const val SEARCH_TITLE = "search_title"
     const val FAVORITE_ICON = "favorite_icon"
-    const val INITIAL_LOADING = "initial_loading"
+    const val USER_LIST_CONTENT = "user_list_content"
 }

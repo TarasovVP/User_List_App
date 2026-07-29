@@ -33,26 +33,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
 import com.example.userlistapp.core.ui.UiAnimationLabels
 import com.example.userlistapp.core.ui.UiTestTags
+import com.example.userlistapp.core.ui.UiTextSnackbarEffect
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.feature.users.components.UserAvatar
-import com.example.userlistapp.ui.theme.FavoriteSelectedColor
+import com.example.userlistapp.ui.theme.extendedColors
 import java.text.DateFormat
 import java.util.Date
 
@@ -60,8 +61,7 @@ import java.util.Date
 fun UserDetailsRoute(onBack: () -> Unit, viewModel: UserDetailsViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
-    LaunchedEffect(Unit) { viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) } }
+    UiTextSnackbarEffect(viewModel.events, snackbar)
     UserDetailsScreen(
         state,
         onBack,
@@ -90,7 +90,12 @@ fun UserDetailsScreen(
             TopAppBar(
                 modifier = Modifier.shadow(4.dp),
                 expandedHeight = 56.dp,
-                title = { Text(stringResource(R.string.user_details)) },
+                title = {
+                    Text(
+                        stringResource(R.string.user_details),
+                        modifier = Modifier.semantics { heading() },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
@@ -98,10 +103,17 @@ fun UserDetailsScreen(
                 },
                 actions = {
                     user?.let {
+                        val favoriteStateDescription = stringResource(
+                            if (it.isFavorite) R.string.favorite else R.string.not_favorite,
+                        )
                         IconButton(
                             onClick = onFavorite,
                             enabled = state.canToggleFavorite,
-                            modifier = Modifier.testTag(UiTestTags.FAVORITE_BUTTON),
+                            modifier = Modifier
+                                .testTag(UiTestTags.FAVORITE_BUTTON)
+                                .semantics {
+                                    stateDescription = favoriteStateDescription
+                                },
                         ) {
                             AnimatedContent(
                                 targetState = it.isFavorite,
@@ -109,8 +121,18 @@ fun UserDetailsScreen(
                             ) { isFavorite ->
                                 Icon(
                                     if (isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
-                                    stringResource(if (isFavorite) R.string.favorite else R.string.not_favorite),
-                                    tint = if (isFavorite) FavoriteSelectedColor else MaterialTheme.colorScheme.onSurface,
+                                    stringResource(
+                                        if (isFavorite) {
+                                            R.string.remove_from_favorites
+                                        } else {
+                                            R.string.add_to_favorites
+                                        },
+                                    ),
+                                    tint = if (isFavorite) {
+                                        MaterialTheme.extendedColors.favoriteSelected
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
                                 )
                             }
                         }
@@ -141,7 +163,8 @@ fun UserDetailsScreen(
                 ) {
                     Text(
                         stringResource(R.string.user_not_found),
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() },
                     )
                     Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
                         Text(stringResource(R.string.back))
@@ -183,7 +206,11 @@ private fun DetailsContent(
                 .size(160.dp)
                 .clip(CircleShape)
         )
-        Text(user.fullName, style = MaterialTheme.typography.headlineMedium)
+        Text(
+            user.fullName,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Detail(stringResource(R.string.username), user.username)
             Detail(stringResource(R.string.age), user.age.toString())

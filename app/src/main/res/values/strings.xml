@@ -25,6 +25,11 @@
     <string name="not_available">Not available</string>
     <string name="favorite">Favorite</string>
     <string name="not_favorite">Not favorite</string>
+    <string name="add_to_favorites">Add to favorites</string>
+    <string name="remove_from_favorites">Remove from favorites</string>
+    <string name="open_user_details">Open details for %1$s</string>
+    <string name="loading">Loading</string>
+    <string name="profile_photo">Profile photo for %1$s</string>
     <string name="back">Navigate back</string>
     <string name="user_details">User details</string>
     <string name="user_not_found">User not found.</string>

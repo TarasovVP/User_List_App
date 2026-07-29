@@ -2,6 +2,10 @@ package com.example.userlistapp.feature.users.list
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,7 +73,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -82,12 +92,13 @@ import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.core.ui.UiAnimationLabels
 import com.example.userlistapp.core.ui.UiTestTags
+import com.example.userlistapp.core.ui.UiTextSnackbarEffect
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
 import com.example.userlistapp.feature.users.components.UserAvatar
-import com.example.userlistapp.ui.theme.FavoriteSelectedColor
 import com.example.userlistapp.ui.theme.UserListTheme
+import com.example.userlistapp.ui.theme.extendedColors
 
 @Composable
 fun UserListRoute(
@@ -98,6 +109,9 @@ fun UserListRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val contentState = state.toContentState(
+        initialErrorMessage = state.initialError?.resolve(context),
+    )
     TrackJankStates(
         mapOf(
             SCREEN_STATE_KEY to USERS_SCREEN_VALUE,
@@ -106,9 +120,10 @@ fun UserListRoute(
             VISIBLE_USERS_STATE_KEY to state.users.size.qualityBucket,
         ),
     )
-    LaunchedEffect(Unit) { viewModel.events.collect { snackbar.showSnackbar(it.resolve(context)) } }
+    UiTextSnackbarEffect(viewModel.events, snackbar)
     UserListScreen(
         state,
+        contentState,
         viewModel::setQuery,
         viewModel::setSort,
         viewModel::setFavoritesOnly,
@@ -118,6 +133,24 @@ fun UserListRoute(
         onSettings,
         snackbar,
     )
+}
+
+sealed interface UserListContentState {
+    data object InitialLoading : UserListContentState
+    data class InitialError(val message: String) : UserListContentState
+    data object Empty : UserListContentState
+    data object Loaded : UserListContentState
+}
+
+fun UserListUiState.toContentState(initialErrorMessage: String?): UserListContentState = when {
+    isInitialLoading -> UserListContentState.InitialLoading
+    initialError != null -> UserListContentState.InitialError(
+        requireNotNull(initialErrorMessage) {
+            "An initial error must be resolved before rendering UserListScreen"
+        },
+    )
+    users.isEmpty() -> UserListContentState.Empty
+    else -> UserListContentState.Loaded
 }
 
 private val UserListUiState.qualityPhase: String
@@ -148,6 +181,7 @@ private val Int.qualityBucket: String
 @Composable
 fun UserListScreen(
     state: UserListUiState,
+    contentState: UserListContentState,
     onQuery: (String) -> Unit,
     onSort: (UserSort) -> Unit,
     onFavoritesOnly: (Boolean) -> Unit,
@@ -236,7 +270,10 @@ fun UserListScreen(
                                 )
                             }
                         } else {
-                            Text(stringResource(R.string.users_title))
+                            Text(
+                                stringResource(R.string.users_title),
+                                modifier = Modifier.semantics { heading() },
+                            )
                         }
                     }
                 },
@@ -267,59 +304,127 @@ fun UserListScreen(
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        when {
-            state.isInitialLoading -> Centered(padding) {
-                CircularProgressIndicator(
-                    Modifier.testTag(
-                        UiAnimationLabels.INITIAL_LOADING
-                    )
+        AnimatedContent(
+            targetState = contentState,
+            contentKey = { it::class },
+            transitionSpec = {
+                fadeIn(tween(durationMillis = 220)) togetherWith
+                    fadeOut(tween(durationMillis = 120))
+            },
+            modifier = Modifier.fillMaxSize(),
+            label = UiAnimationLabels.USER_LIST_CONTENT,
+        ) { targetState ->
+            when (targetState) {
+                UserListContentState.InitialLoading -> {
+                    val loadingDescription = stringResource(R.string.loading)
+                    Centered(padding) {
+                        CircularProgressIndicator(
+                            Modifier
+                                .testTag(UiTestTags.USER_LIST_LOADING)
+                                .semantics {
+                                    contentDescription = loadingDescription
+                                },
+                        )
+                    }
+                }
+
+                is UserListContentState.InitialError -> Centered(padding) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .testTag(UiTestTags.USER_LIST_ERROR)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    ) {
+                        Text(
+                            targetState.message,
+                            modifier = Modifier.padding(24.dp),
+                        )
+                        Button(onClick = onRefresh) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                }
+
+                UserListContentState.Empty,
+                UserListContentState.Loaded,
+                -> RefreshableUserContent(
+                    state = state,
+                    showEmptyState = targetState == UserListContentState.Empty,
+                    padding = padding,
+                    pullToRefreshState = pullToRefreshState,
+                    onSort = onSort,
+                    onFavoritesOnly = onFavoritesOnly,
+                    onRefresh = onRefresh,
+                    onUser = onUser,
+                    onFavorite = onFavorite,
                 )
             }
+        }
+    }
+}
 
-            state.initialError != null -> Centered(padding) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        state.initialError.resolve(LocalContext.current),
-                        modifier = Modifier.padding(24.dp)
-                    )
-                    Button(onClick = onRefresh) { Text(stringResource(R.string.retry)) }
-                }
-            }
-
-            else -> PullToRefreshBox(
-                isRefreshing = state.isRefreshing,
-                onRefresh = onRefresh,
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RefreshableUserContent(
+    state: UserListUiState,
+    showEmptyState: Boolean,
+    padding: PaddingValues,
+    pullToRefreshState: PullToRefreshState,
+    onSort: (UserSort) -> Unit,
+    onFavoritesOnly: (Boolean) -> Unit,
+    onRefresh: () -> Unit,
+    onUser: (Int) -> Unit,
+    onFavorite: (User) -> Unit,
+) {
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        state = pullToRefreshState,
+        modifier = Modifier.padding(padding),
+        indicator = {
+            PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
-                modifier = Modifier.padding(padding),
-                indicator = {
-                    PullToRefreshDefaults.Indicator(
-                        state = pullToRefreshState,
-                        isRefreshing = state.isRefreshing,
-                        modifier = Modifier.align(Alignment.TopCenter),
+                isRefreshing = state.isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            UserControls(state, onSort, onFavoritesOnly)
+            if (showEmptyState) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .testTag(UiTestTags.USER_LIST_EMPTY),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(
+                            if (
+                                state.hasCachedUsers ||
+                                state.query.isNotBlank() ||
+                                state.favoritesOnly
+                            ) {
+                                R.string.no_results
+                            } else {
+                                R.string.no_users
+                            },
+                        ),
                     )
-                },
-            ) {
-                Column(Modifier.fillMaxSize()) {
-                    UserControls(state, onSort, onFavoritesOnly)
-                    if (state.users.isEmpty()) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(stringResource(if (state.hasCachedUsers || state.query.isNotBlank() || state.favoritesOnly) R.string.no_results else R.string.no_users))
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.testTag(UiTestTags.USER_LIST)
-                        ) {
-                            items(state.users, key = User::id) { user ->
-                                UserCard(
-                                    user,
-                                    onClick = { onUser(user.id) },
-                                    onFavorite = { onFavorite(user) },
-                                    modifier = Modifier.animateItem(),
-                                )
-                            }
-                        }
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.testTag(UiTestTags.USER_LIST),
+                ) {
+                    items(state.users, key = User::id) { user ->
+                        UserCard(
+                            user,
+                            onClick = { onUser(user.id) },
+                            onFavorite = { onFavorite(user) },
+                            modifier = Modifier.animateItem(),
+                        )
                     }
                 }
             }
@@ -366,7 +471,7 @@ private fun UserControls(
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-                    selectedLeadingIconColor = FavoriteSelectedColor,
+                    selectedLeadingIconColor = MaterialTheme.extendedColors.favoriteSelected,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
@@ -379,7 +484,7 @@ private fun UserControls(
                         if (state.favoritesOnly) Icons.Default.Star else Icons.Outlined.StarOutline,
                         null,
                         tint = if (state.favoritesOnly) {
-                            FavoriteSelectedColor
+                            MaterialTheme.extendedColors.favoriteSelected
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         },
@@ -397,10 +502,17 @@ private fun UserCard(
     onFavorite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val openDetailsLabel = stringResource(R.string.open_user_details, user.fullName)
+    val favoriteStateDescription = stringResource(
+        if (user.isFavorite) R.string.favorite else R.string.not_favorite,
+    )
     Card(
         onClick = onClick, modifier = modifier
             .fillMaxWidth()
             .testTag(UiTestTags.user(user.id))
+            .semantics {
+                onClick(label = openDetailsLabel, action = null)
+            },
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             UserAvatar(
@@ -421,7 +533,11 @@ private fun UserCard(
                     )
                     IconButton(
                         onClick = onFavorite,
-                        modifier = Modifier.testTag(UiTestTags.favorite(user.id))
+                        modifier = Modifier
+                            .testTag(UiTestTags.favorite(user.id))
+                            .semantics {
+                                stateDescription = favoriteStateDescription
+                            },
                     ) {
                         AnimatedContent(
                             targetState = user.isFavorite,
@@ -429,8 +545,18 @@ private fun UserCard(
                         ) { isFavorite ->
                             Icon(
                                 imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
-                                contentDescription = stringResource(if (isFavorite) R.string.favorite else R.string.not_favorite),
-                                tint = if (isFavorite) FavoriteSelectedColor else MaterialTheme.colorScheme.onSurface,
+                                contentDescription = stringResource(
+                                    if (isFavorite) {
+                                        R.string.remove_from_favorites
+                                    } else {
+                                        R.string.add_to_favorites
+                                    },
+                                ),
+                                tint = if (isFavorite) {
+                                    MaterialTheme.extendedColors.favoriteSelected
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                             )
                         }
                     }

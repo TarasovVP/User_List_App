@@ -1,5 +1,6 @@
 <resources>
     <string name="account_title">Account</string>
+    <string name="profile_photo">Profile photo for %1$s</string>
     <string name="settings">Settings</string>
     <string name="guest_title">Guest</string>
     <string name="guest_explanation">Sign in to browse the protected user directory and synchronize users.</string>

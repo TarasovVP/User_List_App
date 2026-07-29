@@ -35,7 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -60,7 +64,12 @@ fun ModularAccountScreen(
             TopAppBar(
                 modifier = Modifier.shadow(4.dp),
                 expandedHeight = 56.dp,
-                title = { Text(stringResource(R.string.account_title)) },
+                title = {
+                    Text(
+                        stringResource(R.string.account_title),
+                        modifier = Modifier.semantics { heading() },
+                    )
+                },
                 actions = {
                     IconButton(onClick = actions.onSettings) {
                         Icon(Icons.Default.Settings, stringResource(R.string.settings))
@@ -80,7 +89,12 @@ fun ModularAccountScreen(
                 AccountSession.SignedIn -> when {
                     state.isAccountLoading && state.account == null -> CircularProgressIndicator()
                     state.accountError != null && state.account == null -> {
-                        Text(state.accountError)
+                        Text(
+                            state.accountError,
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                            },
+                        )
                         Button(onClick = actions.onRetry) {
                             Text(stringResource(R.string.retry))
                         }
@@ -116,7 +130,7 @@ private fun AccountContent(
     Box(Modifier.size(128.dp)) {
         AsyncImage(
             model = state.localAvatarUri?.takeUnless { localImageFailed } ?: account.remoteImageUrl,
-            contentDescription = avatarClickLabel,
+            contentDescription = stringResource(R.string.profile_photo, account.fullName),
             onError = { if (state.localAvatarUri != null) localImageFailed = true },
             modifier = Modifier
                 .fillMaxSize()
@@ -139,7 +153,9 @@ private fun AccountContent(
     Text(
         account.fullName,
         style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier.padding(top = 16.dp),
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .semantics { heading() },
     )
     Text("@${account.username}")
     Text(account.email)
@@ -165,7 +181,9 @@ private fun AccountContent(
             it,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
         )
     }
     OutlinedButton(onClick = actions.onSignOut, modifier = Modifier.padding(top = 12.dp)) {
@@ -175,7 +193,11 @@ private fun AccountContent(
 
 @Composable
 private fun GuestPrompt(onSignIn: () -> Unit) {
-    Text(stringResource(R.string.guest_title), style = MaterialTheme.typography.headlineSmall)
+    Text(
+        stringResource(R.string.guest_title),
+        style = MaterialTheme.typography.headlineSmall,
+        modifier = Modifier.semantics { heading() },
+    )
     Text(
         stringResource(R.string.guest_explanation),
         modifier = Modifier.padding(vertical = 16.dp),

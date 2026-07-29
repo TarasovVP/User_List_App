@@ -5,6 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.example.userlistapp.domain.model.ThemeMode
 
@@ -13,7 +16,25 @@ private val BrandLightBlue = Color(0xFF55B8E1)
 private val BrandOrange = Color(0xFFF39A18)
 private val BrandCoral = Color(0xFFF04B2E)
 
-val FavoriteSelectedColor = BrandOrange
+@Immutable
+data class UserListExtendedColors(
+    val favoriteSelected: Color,
+)
+
+private val LightExtendedColors = UserListExtendedColors(
+    favoriteSelected = BrandOrange,
+)
+
+private val DarkExtendedColors = UserListExtendedColors(
+    favoriteSelected = Color(0xFFFFB866),
+)
+
+private val LocalUserListExtendedColors = staticCompositionLocalOf<UserListExtendedColors> {
+    error("UserListExtendedColors must be provided by UserListTheme")
+}
+
+val MaterialTheme.extendedColors: UserListExtendedColors
+    @Composable get() = LocalUserListExtendedColors.current
 
 private val LightColors = lightColorScheme(
     primary = BrandBlue,
@@ -84,8 +105,12 @@ fun UserListTheme(mode: ThemeMode, content: @Composable () -> Unit) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    MaterialTheme(
-        colorScheme = if (dark) DarkColors else LightColors,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalUserListExtendedColors provides if (dark) DarkExtendedColors else LightExtendedColors,
+    ) {
+        MaterialTheme(
+            colorScheme = if (dark) DarkColors else LightColors,
+            content = content,
+        )
+    }
 }

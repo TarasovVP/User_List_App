@@ -184,6 +184,7 @@ dependencies {
     kspAndroidTest(libs.hilt.compiler)
     kspAndroidTest(libs.androidx.room.compiler)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

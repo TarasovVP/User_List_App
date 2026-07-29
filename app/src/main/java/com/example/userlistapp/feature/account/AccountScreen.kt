@@ -44,7 +44,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -78,7 +82,12 @@ fun AccountScreen(
             TopAppBar(
                 modifier = Modifier.shadow(4.dp),
                 expandedHeight = 56.dp,
-                title = { Text(stringResource(R.string.account_title)) },
+                title = {
+                    Text(
+                        stringResource(R.string.account_title),
+                        modifier = Modifier.semantics { heading() },
+                    )
+                },
                 actions = {
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Default.Settings, stringResource(R.string.settings))
@@ -104,7 +113,12 @@ fun AccountScreen(
                 is SessionState.SignedIn -> when {
                     state.isAccountLoading && state.account == null -> CircularProgressIndicator()
                     state.accountError != null && state.account == null -> {
-                        Text(state.accountError.resolve(context))
+                        Text(
+                            state.accountError.resolve(context),
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                            },
+                        )
                         Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
                     }
 
@@ -122,7 +136,10 @@ fun AccountScreen(
                             AsyncImage(
                                 model = state.localAvatarUri?.takeUnless { localImageFailed }
                                     ?: account.remoteImageUrl,
-                                contentDescription = avatarClickLabel,
+                                contentDescription = stringResource(
+                                    R.string.profile_photo,
+                                    account.fullName,
+                                ),
                                 onError = {
                                     if (state.localAvatarUri != null) localImageFailed = true
                                 },
@@ -151,7 +168,9 @@ fun AccountScreen(
                         Text(
                             account.fullName,
                             style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(top = 16.dp)
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .semantics { heading() },
                         )
                         Text(USERNAME_PREFIX + account.username)
                         Text(account.email)
@@ -180,7 +199,9 @@ fun AccountScreen(
                                 avatarError.resolve(context),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(top = 4.dp),
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .semantics { liveRegion = LiveRegionMode.Polite },
                             )
                         }
                         OutlinedButton(
@@ -226,7 +247,11 @@ fun SignInContent(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(stringResource(R.string.sign_in), style = MaterialTheme.typography.headlineSmall)
+        Text(
+            stringResource(R.string.sign_in),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.semantics { heading() },
+        )
         OutlinedTextField(
             value = username,
             onValueChange = {
@@ -270,7 +295,8 @@ fun SignInContent(
         state.loginError?.let {
             Text(
                 it.resolve(LocalContext.current),
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         Button(
@@ -305,7 +331,12 @@ fun AuthenticationRequired(
                 TopAppBar(
                     modifier = Modifier.shadow(4.dp),
                     expandedHeight = 56.dp,
-                    title = { Text(stringResource(R.string.users_title)) },
+                    title = {
+                        Text(
+                            stringResource(R.string.users_title),
+                            modifier = Modifier.semantics { heading() },
+                        )
+                    },
                     actions = {
                         IconButton(onClick = onSettings) {
                             Icon(Icons.Default.Settings, stringResource(R.string.settings))
@@ -339,7 +370,11 @@ private fun AuthenticationRequiredContent(
 
 @Composable
 private fun GuestPrompt(onSignIn: () -> Unit) {
-    Text(stringResource(R.string.guest_title), style = MaterialTheme.typography.headlineMedium)
+    Text(
+        stringResource(R.string.guest_title),
+        style = MaterialTheme.typography.headlineMedium,
+        modifier = Modifier.semantics { heading() },
+    )
     Text(
         stringResource(R.string.guest_explanation),
         modifier = Modifier.padding(vertical = 16.dp),
