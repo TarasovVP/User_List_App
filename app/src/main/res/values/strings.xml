@@ -4,6 +4,14 @@
     <string name="settings">Settings</string>
     <string name="settings_installing">Downloading Settings…</string>
     <string name="settings_install_failed">Settings could not be installed. Try again.</string>
+    <string name="settings_installing_title">Preparing Settings</string>
+    <string name="settings_install_failed_title">Settings unavailable</string>
+    <string name="settings_install_pending">Waiting for the download to start…</string>
+    <string name="settings_install_downloading">Downloading Settings…</string>
+    <string name="settings_install_installing">Installing Settings…</string>
+    <string name="settings_install_canceling">Canceling download…</string>
+    <string name="settings_install_canceled">The Settings download was canceled.</string>
+    <string name="settings_install_progress">%1$d of %2$d bytes</string>
     <string name="refresh">Refresh users</string>
     <string name="search_users">Search users</string>
     <string name="clear_search">Clear search</string>

@@ -17,6 +17,7 @@ import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.NoOpAppQualityMonitor
 import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.di.AppModule
+import com.example.userlistapp.feature.account.AccountImplementationFlag
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.AppSettings
 import com.example.userlistapp.domain.model.RefreshSource
@@ -78,6 +79,13 @@ class MainActivityFlowTest {
     @DefaultDispatcher
     @JvmField
     val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    @BindValue
+    @JvmField
+    val accountImplementationFlag: AccountImplementationFlag =
+        object : AccountImplementationFlag {
+            override val useModularAccount = true
+        }
 
     @Before
     fun inject() {

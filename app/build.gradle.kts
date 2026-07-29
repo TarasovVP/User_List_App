@@ -14,6 +14,7 @@ plugins {
 }
 
 val releaseSigningPropertiesFile = rootProject.file("keystore.properties")
+val useModularAccount = providers.gradleProperty("useModularAccount").orElse("true")
 val releaseSigningProperties = Properties().apply {
     if (releaseSigningPropertiesFile.exists()) {
         releaseSigningPropertiesFile.inputStream().use { load(it) }
@@ -45,6 +46,7 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "com.example.userlistapp.HiltTestRunner"
         buildConfigField("String", "API_BASE_URL", "\"https://dummyjson.com/\"")
+        buildConfigField("boolean", "USE_MODULAR_ACCOUNT", useModularAccount.get())
     }
 
     buildTypes {
@@ -123,6 +125,7 @@ kover {
 
 dependencies {
     implementation(project(":core:navigation"))
+    implementation(project(":feature:account"))
 
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))

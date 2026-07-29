@@ -42,7 +42,8 @@ Runtime screenshots require launching the application on an emulator or physical
 ## Architecture
 
 The app has a base application module, a platform-independent `core:navigation` contract module,
-and an on-demand `settings` dynamic-feature module. Compose has no data-source access; all screens
+a regular `feature:account` Android library, and an on-demand `settings` dynamic-feature module.
+Compose has no data-source access; all screens
 use hoisted state and lifecycle-aware `StateFlow` collection. The base module requests Settings
 through Play Feature Delivery and exposes its Hilt-owned use cases through an application entry
 point, avoiding a dependency from the base app to feature code. Feature code and the navigation
@@ -90,7 +91,9 @@ MockK, coroutine test, Turbine, AndroidX Test, and Compose UI test.
 - `data/preferences`: DataStore settings repository
 - `data/repository`: offline-first repository and mappings
 - `feature`: list, details, and settings UI/ViewModels
-- `feature/account`: Guest, sign-in modal, Account, and Photo Picker UI
+- `feature:account`: modular Account UI and minimal presentation contract
+- `app/feature/account`: temporary legacy Account, shared authentication orchestration, and the
+  replaceable migration flag
 - `worker`: periodic sync worker and scheduler
 - `core/quality`: Firebase adapter, custom traces, Crashlytics context, and JankStats aggregation
 - `di`: dependency graph

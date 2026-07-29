@@ -30,6 +30,8 @@ import com.example.userlistapp.domain.repository.AuthSessionRepository
 import com.example.userlistapp.domain.repository.SettingsRepository
 import com.example.userlistapp.domain.repository.SyncScheduler
 import com.example.userlistapp.domain.repository.UserRepository
+import com.example.userlistapp.feature.account.AccountImplementationFlag
+import com.example.userlistapp.feature.account.LocalAccountImplementationFlag
 import com.example.userlistapp.worker.WorkManagerSyncScheduler
 import dagger.Module
 import dagger.Provides
@@ -61,6 +63,12 @@ annotation class AuthDataStore
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+    @Provides
+    @Singleton
+    fun accountImplementationFlag(
+        implementation: LocalAccountImplementationFlag,
+    ): AccountImplementationFlag = implementation
+
     @Provides
     @Singleton
     @DefaultDispatcher

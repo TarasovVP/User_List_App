@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,17 +33,28 @@ import com.example.userlistapp.core.navigation.UserDetailsDestination
 import com.example.userlistapp.core.navigation.UsersDestination
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.feature.account.AccountScreen
+import com.example.userlistapp.feature.account.AccountImplementation
 import com.example.userlistapp.feature.account.AuthViewModel
 import com.example.userlistapp.feature.account.AuthenticationRequired
 import com.example.userlistapp.feature.account.SignInSheet
+import com.example.userlistapp.feature.account.modular.AccountContent
+import com.example.userlistapp.feature.account.modular.AccountFeatureActions
+import com.example.userlistapp.feature.account.modular.AccountFeatureState
+import com.example.userlistapp.feature.account.modular.AccountSession
+import com.example.userlistapp.feature.account.modular.ModularAccountScreen
 import com.example.userlistapp.feature.users.details.UserDetailsRoute
 import com.example.userlistapp.feature.users.list.UserListRoute
 
 @Composable
-fun AppNavigation(session: SessionState, onOpenSettings: () -> Unit) {
+fun AppNavigation(
+    session: SessionState,
+    accountImplementation: AccountImplementation = AccountImplementation.LEGACY,
+    onOpenSettings: () -> Unit,
+) {
     val nav = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
     val auth by authViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var showSignIn by rememberSaveable { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
     val destination = backStack?.destination
@@ -109,16 +121,53 @@ fun AppNavigation(session: SessionState, onOpenSettings: () -> Unit) {
                 )
             }
             composable<AccountDestination> {
-                AccountScreen(
-                    state = auth,
-                    onOpenSignIn = { authViewModel.clearLoginError(); showSignIn = true },
-                    onRetry = authViewModel::retryAccount,
-                    onSignOut = authViewModel::signOut,
-                    onImportAvatar = authViewModel::importLocalAvatar,
-                    onRemoveAvatar = authViewModel::removeLocalAvatar,
-                    onClearAvatarError = authViewModel::clearAvatarError,
-                    onSettings = onOpenSettings,
-                )
+                val openSignIn = {
+                    authViewModel.clearLoginError()
+                    showSignIn = true
+                }
+                if (accountImplementation == AccountImplementation.MODULAR) {
+                    ModularAccountScreen(
+                        state = AccountFeatureState(
+                            session = when (auth.session) {
+                                SessionState.Initializing -> AccountSession.Initializing
+                                SessionState.SignedOut -> AccountSession.SignedOut
+                                is SessionState.SignedIn -> AccountSession.SignedIn
+                            },
+                            account = auth.account?.let {
+                                AccountContent(
+                                    username = it.username,
+                                    fullName = it.fullName,
+                                    email = it.email,
+                                    remoteImageUrl = it.remoteImageUrl,
+                                )
+                            },
+                            localAvatarUri = auth.localAvatarUri,
+                            isAccountLoading = auth.isAccountLoading,
+                            accountError = auth.accountError?.resolve(context),
+                            avatarError = auth.avatarError?.resolve(context),
+                        ),
+                        actions = AccountFeatureActions(
+                            onOpenSignIn = openSignIn,
+                            onRetry = authViewModel::retryAccount,
+                            onSignOut = authViewModel::signOut,
+                            onImportAvatar = authViewModel::importLocalAvatar,
+                            onRemoveAvatar = authViewModel::removeLocalAvatar,
+                            onClearAvatarError = authViewModel::clearAvatarError,
+                            onSettings = onOpenSettings,
+                        ),
+                    )
+                } else {
+                    AccountScreen(
+                        state = auth,
+                        onOpenSignIn = openSignIn,
+                        onRetry = authViewModel::retryAccount,
+                        onSignOut = authViewModel::signOut,
+                        onImportAvatar = authViewModel::importLocalAvatar,
+                        onRemoveAvatar = authViewModel::removeLocalAvatar,
+                        onClearAvatarError = authViewModel::clearAvatarError,
+                        onSettings = onOpenSettings,
+                    )
+                }
             }
             composable<UserDetailsDestination> {
                 if (session is SessionState.SignedIn) UserDetailsRoute(onBack = nav::navigateUp)

@@ -1,6 +1,7 @@
 package com.example.userlistapp.feature.settings
 
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +13,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.userlistapp.settings.SettingsFeatureDependencies
 import com.example.userlistapp.ui.theme.UserListTheme
+import com.google.android.play.core.splitcompat.SplitCompat
 import dagger.hilt.android.EntryPointAccessors
 
 class SettingsActivity : ComponentActivity() {
@@ -23,6 +25,11 @@ class SettingsActivity : ComponentActivity() {
     }
     private val viewModel: SettingsViewModel by viewModels {
         settingsViewModelFactory(dependencies)
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase)
+        SplitCompat.installActivity(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

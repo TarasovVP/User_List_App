@@ -1,0 +1,13 @@
+<resources>
+    <string name="account_title">Account</string>
+    <string name="settings">Settings</string>
+    <string name="guest_title">Guest</string>
+    <string name="guest_explanation">Sign in to browse the protected user directory and synchronize users.</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_out">Sign out</string>
+    <string name="retry">Retry</string>
+    <string name="choose_local_photo">Choose local photo</string>
+    <string name="change_local_photo">Change local photo</string>
+    <string name="local_photo_explanation">Stored only on this device</string>
+    <string name="remove_local_photo">Remove local photo</string>
+</resources>
