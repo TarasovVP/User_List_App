@@ -36,6 +36,7 @@ firebase-crashlytics-plugin = "3.0.7"
 firebase-performance-plugin = "2.0.2"
 androidx-metrics = "1.0.0"
 play-feature-delivery = "2.1.0"
+tink = "1.23.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
@@ -91,6 +92,7 @@ firebase-performance = { module = "com.google.firebase:firebase-perf" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 androidx-metrics-performance = { module = "androidx.metrics:metrics-performance", version.ref = "androidx-metrics" }
 play-feature-delivery = { module = "com.google.android.play:feature-delivery", version.ref = "play-feature-delivery" }
+tink = { module = "com.google.crypto.tink:tink-android", version.ref = "tink" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

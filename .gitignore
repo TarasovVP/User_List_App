@@ -9,3 +9,5 @@ captures/
 .DS_Store
 keystore.properties
 /release.jks
+*.jks
+*.keystore

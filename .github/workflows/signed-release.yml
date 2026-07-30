@@ -1,0 +1,54 @@
+name: Signed release bundle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build and verify signed release bundle
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keystore_path="${RUNNER_TEMP}/upload-keystore.jks"
+          cleanup() {
+            rm -f "${keystore_path}"
+          }
+          trap cleanup EXIT
+          test -n "${RELEASE_KEYSTORE_BASE64}"
+          test -n "${RELEASE_STORE_PASSWORD}"
+          test -n "${RELEASE_KEY_ALIAS}"
+          test -n "${RELEASE_KEY_PASSWORD}"
+          printf '%s' "${RELEASE_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
+          chmod 600 "${keystore_path}"
+          export RELEASE_STORE_FILE="${keystore_path}"
+          ./gradlew test lint bundleRelease --no-daemon
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload signed AAB only
+        uses: actions/upload-artifact@v7
+        with:
+          name: signed-release-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14

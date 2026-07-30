@@ -11,7 +11,9 @@ import com.example.userlistapp.core.common.IoDispatcher
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.FirebaseAppQualityMonitor
 import com.example.userlistapp.data.local.LocalAvatarStorage
+import com.example.userlistapp.data.local.NoteCipher
 import com.example.userlistapp.data.local.RoomUserLocalDataSource
+import com.example.userlistapp.data.local.TinkNoteCipher
 import com.example.userlistapp.data.local.UserDao
 import com.example.userlistapp.data.local.UserDatabase
 import com.example.userlistapp.data.local.UserLocalDataSource
@@ -35,6 +37,11 @@ import com.example.userlistapp.domain.repository.UserRepository
 import com.example.userlistapp.feature.account.AccountImplementationFlag
 import com.example.userlistapp.feature.account.LocalAccountImplementationFlag
 import com.example.userlistapp.worker.WorkManagerSyncScheduler
+import com.google.crypto.tink.Aead
+import com.google.crypto.tink.KeyTemplates
+import com.google.crypto.tink.RegistryConfiguration
+import com.google.crypto.tink.aead.AeadConfig
+import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,7 +53,6 @@ import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.File
@@ -96,6 +102,20 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun noteCipher(@ApplicationContext context: Context): NoteCipher {
+        AeadConfig.register()
+        val keysetHandle = AndroidKeysetManager.Builder()
+            .withSharedPref(context, NOTE_KEYSET_NAME, NOTE_KEYSET_PREFERENCES)
+            .withKeyTemplate(KeyTemplates.get(NOTE_KEY_TEMPLATE))
+            .withMasterKeyUri(NOTE_MASTER_KEY_URI)
+            .build()
+            .keysetHandle
+        val aead = keysetHandle.getPrimitive(RegistryConfiguration.get(), Aead::class.java)
+        return TinkNoteCipher(aead)
+    }
+
+    @Provides
+    @Singleton
     fun okHttp(
         @ApplicationContext context: Context,
         tokenHolder: AuthTokenHolder,
@@ -115,11 +135,7 @@ object AppModule {
                 .build()
             chain.proceed(request)
         }
-        .apply {
-            if (BuildConfig.DEBUG) addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BASIC
-            })
-        }
+        .addSafeDebugLogging()
         .build()
 
     @Provides
@@ -177,8 +193,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun local(database: UserDatabase, dao: UserDao): UserLocalDataSource =
-        RoomUserLocalDataSource(database, dao)
+    fun local(
+        database: UserDatabase,
+        dao: UserDao,
+        noteCipher: NoteCipher,
+    ): UserLocalDataSource = RoomUserLocalDataSource(database, dao, noteCipher)
 
     @Provides
     @Singleton
@@ -225,3 +244,7 @@ private const val AUTHORIZATION_HEADER = "Authorization"
 private const val JSON_MEDIA_TYPE = "application/json"
 private const val BEARER_PREFIX = "Bearer "
 private const val USER_DATABASE_NAME = "users.db"
+private const val NOTE_KEYSET_NAME = "note_aead_keyset"
+private const val NOTE_KEYSET_PREFERENCES = "cryptographic_keysets"
+private const val NOTE_KEY_TEMPLATE = "AES256_GCM"
+private const val NOTE_MASTER_KEY_URI = "android-keystore://user_list_note_master_key"

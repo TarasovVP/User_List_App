@@ -17,9 +17,13 @@ private const val DELETE_FAVORITE =
     "DELETE FROM favorite_users WHERE userId = :userId"
 private const val DELETE_NOTE =
     "DELETE FROM user_notes WHERE userId = :userId"
+private const val REPLACE_NOTE_PAYLOAD =
+    "UPDATE user_notes SET note = :newPayload WHERE userId = :userId AND note = :expectedPayload"
 private const val SELECT_LATEST_SNAPSHOT =
     "SELECT MAX(remoteUpdatedAt) FROM users"
 private const val COUNT_USERS = "SELECT COUNT(*) FROM users"
+private const val SELECT_NOTE_PAYLOAD =
+    "SELECT note FROM user_notes WHERE userId = :userId"
 private const val DELETE_STALE_USERS = """
     DELETE FROM users WHERE remoteUpdatedAt != :snapshotBatchId
     AND id NOT IN (SELECT userId FROM favorite_users)
@@ -54,6 +58,13 @@ interface UserDao {
     @Upsert
     suspend fun upsertNote(note: UserNoteEntity)
 
+    @Query(REPLACE_NOTE_PAYLOAD)
+    suspend fun replaceNotePayload(
+        userId: Int,
+        expectedPayload: String,
+        newPayload: String,
+    ): Int
+
     @Query(DELETE_FAVORITE)
     suspend fun deleteFavorite(userId: Int)
 
@@ -65,6 +76,9 @@ interface UserDao {
 
     @Query(COUNT_USERS)
     suspend fun countUsers(): Int
+
+    @Query(SELECT_NOTE_PAYLOAD)
+    suspend fun notePayload(userId: Int): String?
 
     @Query(DELETE_STALE_USERS)
     suspend fun deleteStale(snapshotBatchId: Long)

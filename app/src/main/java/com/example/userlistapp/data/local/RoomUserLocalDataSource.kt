@@ -1,13 +1,20 @@
 package com.example.userlistapp.data.local
 
 import androidx.room.withTransaction
+import kotlinx.coroutines.flow.map
 
 class RoomUserLocalDataSource(
     private val database: UserDatabase,
     private val dao: UserDao,
+    private val noteCipher: NoteCipher,
 ) : UserLocalDataSource {
-    override fun observeUsers() = dao.observeUsers()
-    override fun observeUser(userId: Int) = dao.observeUser(userId)
+    override fun observeUsers() = dao.observeUsers().map { rows ->
+        rows.map { row -> decryptAndMigrate(row) }
+    }
+
+    override fun observeUser(userId: Int) = dao.observeUser(userId).map { row ->
+        row?.let { decryptAndMigrate(it) }
+    }
 
     override suspend fun countUsers() = dao.countUsers()
 
@@ -34,13 +41,32 @@ class RoomUserLocalDataSource(
     }
 
     override suspend fun saveNote(userId: Int, note: String) =
-        dao.upsertNote(UserNoteEntity(userId, note, System.currentTimeMillis()))
+        dao.upsertNote(
+            UserNoteEntity(
+                userId,
+                noteCipher.encrypt(userId, note),
+                System.currentTimeMillis(),
+            )
+        )
 
     override suspend fun deleteNote(userId: Int) {
         database.withTransaction {
             dao.deleteNote(userId)
             dao.deleteStaleUserWithoutLocalData(userId, STALE_SNAPSHOT_BATCH_ID)
         }
+    }
+
+    private suspend fun decryptAndMigrate(row: UserWithLocal): UserWithLocal {
+        val payload = row.note ?: return row
+        val decrypted = noteCipher.decrypt(row.id, payload)
+        if (decrypted.requiresMigration) {
+            dao.replaceNotePayload(
+                userId = row.id,
+                expectedPayload = payload,
+                newPayload = noteCipher.encrypt(row.id, decrypted.plaintext),
+            )
+        }
+        return row.copy(note = decrypted.plaintext)
     }
 }
 

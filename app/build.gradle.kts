@@ -20,6 +20,20 @@ val releaseSigningProperties = Properties().apply {
         releaseSigningPropertiesFile.inputStream().use { load(it) }
     }
 }
+fun releaseSigningValue(environmentName: String, propertyName: String): String? =
+    providers.environmentVariable(environmentName).orNull
+        ?: releaseSigningProperties.getProperty(propertyName)
+
+val releaseStoreFile = releaseSigningValue("RELEASE_STORE_FILE", "storeFile")
+val releaseStorePassword = releaseSigningValue("RELEASE_STORE_PASSWORD", "storePassword")
+val releaseKeyAlias = releaseSigningValue("RELEASE_KEY_ALIAS", "keyAlias")
+val releaseKeyPassword = releaseSigningValue("RELEASE_KEY_PASSWORD", "keyPassword")
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.example.userlistapp"
@@ -27,13 +41,12 @@ android {
     dynamicFeatures += setOf(":settings")
 
     signingConfigs {
-        if (releaseSigningPropertiesFile.exists()) {
+        if (hasReleaseSigning) {
             create("release") {
-                storeFile = file(requireNotNull(releaseSigningProperties.getProperty("storeFile")))
-                storePassword =
-                    requireNotNull(releaseSigningProperties.getProperty("storePassword"))
-                keyAlias = requireNotNull(releaseSigningProperties.getProperty("keyAlias"))
-                keyPassword = requireNotNull(releaseSigningProperties.getProperty("keyPassword"))
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = requireNotNull(releaseStorePassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
+                keyPassword = requireNotNull(releaseKeyPassword)
             }
         }
     }
@@ -67,7 +80,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (releaseSigningPropertiesFile.exists()) {
+            if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
@@ -166,7 +179,8 @@ dependencies {
 
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp.logging.interceptor)
+    debugImplementation(libs.okhttp.logging.interceptor)
+    implementation(libs.tink)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
