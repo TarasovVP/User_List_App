@@ -74,6 +74,36 @@ fun usersDarkScreenshot() {
 }
 
 @PreviewTest
+@Preview(
+    name = "Users increased font",
+    widthDp = 393,
+    heightDp = 852,
+    fontScale = 1.3f,
+    showBackground = true,
+)
+@Composable
+fun usersIncreasedFontScreenshot() {
+    ScreenshotTheme(ThemeMode.LIGHT) {
+        UserListScreen(
+            state = UserListUiState(
+                users = screenshotUsers,
+                hasCachedUsers = true,
+                isInitialLoading = false,
+            ),
+            contentState = UserListContentState.Loaded,
+            onQuery = {},
+            onSort = {},
+            onFavoritesOnly = {},
+            onRefresh = {},
+            onUser = {},
+            onFavorite = {},
+            onSettings = {},
+            snackbar = SnackbarHostState(),
+        )
+    }
+}
+
+@PreviewTest
 @Preview(name = "Sign in error", widthDp = 393, heightDp = 852, showBackground = true)
 @Composable
 fun signInErrorScreenshot() {

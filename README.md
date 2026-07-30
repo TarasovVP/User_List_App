@@ -229,16 +229,19 @@ semantics, while `MainActivityFlowTest` launches the real activity and navigatio
 Hilt-bound in-memory repositories. The flow is deterministic and never accesses DummyJSON, Room,
 DataStore, or WorkManager.
 
-The selected application flow stays inside Compose, so Compose Test APIs provide node discovery,
-actions, assertions, synchronization, and Espresso-backed idling. UI Automator is deliberately not
-used: the Android Photo Picker belongs to system UI, varies between platform and Mainline versions,
-and is outside the stable application-flow boundary. Its launcher callback is covered at the
-component boundary; platform ownership is documented rather than duplicated by a brittle selector.
+Compose Test APIs provide node discovery, actions, assertions, synchronization, and
+Espresso-backed idling for application UI. The Photo Picker cancellation test crosses into Android
+system UI, so it uses UI Automator on the same API 37 AVD. It identifies the transition by package
+ownership rather than device-specific picker text, presses system Back, waits for the application
+package to become visible, and confirms that neither the fake repository nor the rendered Account
+state received an avatar. The test intentionally does not select real media: doing so would require
+seeding device-owned storage and would make the result dependent on emulator state.
 
-Screenshot tests use the experimental official Compose Preview Screenshot Testing plugin and run
-host-side through Layoutlib. Four deliberately limited references cover the user list in light and
-dark themes, the sign-in validation state, and user details. References are stored in
-`app/src/screenshotTestDebug/reference`; validation diffs are written to
+Screenshot tests use the experimental official Compose Preview Screenshot Testing plugin with a
+`0.0001` image-difference threshold and run host-side through Layoutlib. Five deliberately limited
+references cover the user list in light and dark themes, the user list at `fontScale = 1.3`, the
+sign-in validation state, and user details. All previews use a 393 x 852 dp viewport. References
+are stored in `app/src/screenshotTestDebug/reference`; validation diffs are written to
 `app/build/reports/screenshotTest/preview/debug/index.html`.
 
 To review an intentional visual change:
@@ -249,6 +252,6 @@ To review an intentional visual change:
 4. Review and commit the updated PNG references with the UI change.
 
 Keep screenshot execution on JDK 17 with the repository's pinned AGP, Compose BOM, and screenshot
-plugin. Do not add device, locale, or font-scale permutations unless they provide distinct
-regression feedback. Behavior tests verify interactions and state transitions; screenshot tests
-verify rendering and must not replace behavior assertions.
+plugin. Layoutlib does not reproduce every device-specific renderer, system surface, or OEM font,
+so connected behavior tests remain necessary. Behavior tests verify interactions and state
+transitions; screenshot tests verify rendering and must not replace behavior assertions.

@@ -2,14 +2,21 @@ package com.example.userlistapp
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.EMPTY
@@ -42,6 +49,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -138,10 +146,46 @@ class MainActivityFlowTest {
             .assertTextContains(note)
     }
 
+    @Test
+    fun cancellingPhotoPickerKeepsAccountAvatarUnchanged() {
+        val context = compose.activity
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val appPackage = context.packageName
+
+        compose.waitForText(context.getString(R.string.guest_title))
+        compose.onNodeWithTag(UiTestTags.SIGN_IN_OPEN).performClick()
+        compose.onNodeWithTag(UiTestTags.LOGIN_USERNAME).performTextInput("emilys")
+        compose.onNodeWithTag(UiTestTags.LOGIN_PASSWORD).performTextInput("emilyspass")
+        compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).performClick()
+        compose.waitForText(context.getString(R.string.users_title))
+        compose.onNodeWithText(context.getString(R.string.account_title)).performClick()
+        compose.waitForText("Emily Johnson")
+
+        compose.onNodeWithText(context.getString(R.string.choose_local_photo)).performClick()
+        device.waitForIdle()
+
+        assertNotEquals(appPackage, device.currentPackageName)
+
+        device.pressBack()
+        assertTrue(device.wait(Until.hasObject(By.pkg(appPackage)), SYSTEM_UI_TIMEOUT_MILLIS))
+        compose.waitForText("Emily Johnson")
+        compose.runOnIdle {
+            assertEquals(null, auth.localAvatarUri.value)
+            assertEquals(0, auth.importAvatarCalls)
+        }
+        compose.onNodeWithText(context.getString(R.string.choose_local_photo)).assertIsDisplayed()
+        compose.onAllNodesWithContentDescription(context.getString(R.string.remove_local_photo))
+            .assertCountEquals(0)
+    }
+
     private fun androidx.compose.ui.test.junit4.ComposeTestRule.waitForText(text: String) {
         waitUntil(5_000) {
             onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private companion object {
+        const val SYSTEM_UI_TIMEOUT_MILLIS = 5_000L
     }
 }
 
@@ -166,6 +210,8 @@ private class FakeUserRealtimeClient : UserRealtimeClient {
 private class FakeAuthSessionRepository : AuthSessionRepository {
     override val sessionState = MutableStateFlow<SessionState>(SessionState.SignedOut)
     override val localAvatarUri = MutableStateFlow<String?>(null)
+    var importAvatarCalls = 0
+        private set
     private val account = Account(
         id = 1,
         username = "emilys",
@@ -187,7 +233,11 @@ private class FakeAuthSessionRepository : AuthSessionRepository {
         return AppResult.Success(Unit)
     }
 
-    override suspend fun importLocalAvatar(sourceUri: String) = AppResult.Success(Unit)
+    override suspend fun importLocalAvatar(sourceUri: String): AppResult<Unit> {
+        importAvatarCalls++
+        localAvatarUri.value = sourceUri
+        return AppResult.Success(Unit)
+    }
     override suspend fun removeLocalAvatar() = AppResult.Success(Unit)
 }
 

@@ -177,6 +177,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.hilt.android.testing)
     kspAndroidTest(libs.hilt.compiler)
     kspAndroidTest(libs.androidx.room.compiler)

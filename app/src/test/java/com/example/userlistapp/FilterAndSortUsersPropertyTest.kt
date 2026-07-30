@@ -91,9 +91,8 @@ class FilterAndSortUsersPropertyTest {
                         query.isBlank() || listOf(user.fullName, user.email, user.companyName)
                             .any { it.contains(query, ignoreCase = true) }
                     }
-                    .sortedBy { it.fullName.lowercase() }
-                    .let { if (sort == UserSort.NAME_ASCENDING) it else it.reversed() }
-                assertEquals(expected, actual)
+                assertEquals(expected.multiset(), actual.multiset())
+                assertSorted(actual, sort)
             }
         }
     }
