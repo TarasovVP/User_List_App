@@ -47,9 +47,17 @@ class JankMonitor(
                 stateCounts = stateCounts.mapValues { (_, counts) -> counts.copy() },
             )
         }
-        val summary = FRAMES_PREFIX + session.totalFrames + JANKY_INFIX + session.jankyFrames
+        val jankyStates = session.stateCounts
+            .filterValues { counts -> counts.janky > 0 }
+            .toSortedMap()
+        val stateSummary = jankyStates.keys
+            .joinToString(separator = JANKY_STATE_SEPARATOR)
+            .ifEmpty { NO_JANKY_STATES }
+        val summary = FRAMES_PREFIX + session.totalFrames +
+                JANKY_INFIX + session.jankyFrames +
+                JANKY_STATES_INFIX + stateSummary
         Log.i(LOG_TAG, JANK_SESSION_LOG_PREFIX + summary)
-        session.stateCounts.forEach { (state, counts) ->
+        jankyStates.forEach { (state, counts) ->
             Log.i(
                 LOG_TAG,
                 JANK_STATE_LOG_PREFIX + state +
@@ -120,10 +128,13 @@ class JankMonitor(
         private const val VISIBLE_USERS_STATE_KEY = "visible_users"
         private const val STATE_SEPARATOR = ","
         private const val STATE_VALUE_SEPARATOR = "="
+        private const val JANKY_STATE_SEPARATOR = "|"
         private const val UNKNOWN_SCREEN_STATE = "screen=unknown"
+        private const val NO_JANKY_STATES = "none"
         private const val FRAMES_PREFIX = "frames="
         private const val FRAMES_INFIX = " frames="
         private const val JANKY_INFIX = " janky="
+        private const val JANKY_STATES_INFIX = " janky_states="
         private const val JANK_SESSION_LOG_PREFIX = "Jank session "
         private const val JANK_STATE_LOG_PREFIX = "Jank state="
         private const val JANK_FRAME_LOG_PREFIX = "Jank frame duration_ms="

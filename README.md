@@ -185,7 +185,7 @@ the debug app where applicable and keep deliberate test events limited to develo
    ```bash
    adb shell am broadcast \
      -a com.example.userlistapp.QUALITY_NON_FATAL \
-     -n com.example.userlistapp/com.example.userlistapp.QualityTestReceiver
+     -n com.example.userlistapp.debug/com.example.userlistapp.QualityTestReceiver
    ```
 
 5. Generate the initial Crashlytics test crash:
@@ -193,14 +193,15 @@ the debug app where applicable and keep deliberate test events limited to develo
    ```bash
    adb shell am broadcast \
      -a com.example.userlistapp.QUALITY_CRASH \
-     -n com.example.userlistapp/com.example.userlistapp.QualityTestReceiver
+     -n com.example.userlistapp.debug/com.example.userlistapp.QualityTestReceiver
    ```
 
 6. Relaunch the app so queued crash/non-fatal reports can be uploaded, then inspect the Firebase
    Performance and Crashlytics dashboards. Delivery is asynchronous and can take several minutes.
 
-The verification receiver exists only in the debug source set. No crash control is shipped in
-release. Crashlytics can collect ANRs on supported
+The verification receiver exists only in the debug source set and requires the privileged
+`android.permission.DUMP`, allowing ADB verification without exposing the actions to ordinary
+applications. No crash control is shipped in release. Crashlytics can collect ANRs on supported
 Android versions, but this demo intentionally does not add a main-thread blocking ANR trigger.
 Reproduce ANRs only on a dedicated test device or inspect naturally collected reports. JankStats
 itself has no backend; Logcat retains detailed state-level development reports, while the aggregated

@@ -50,7 +50,13 @@ class UserRepositoryImplTest {
         assertEquals("initial", monitor.trace.attributes["trigger"])
         assertEquals("success", monitor.trace.attributes["result"])
         assertEquals(1L, monitor.trace.metrics["users_received"])
-        assertTrue(monitor.trace.stopped)
+        assertEquals("users_refresh", monitor.keys["operation"])
+        assertEquals("initial", monitor.keys["refresh_trigger"])
+        assertEquals("success", monitor.keys["refresh_result"])
+        assertTrue(monitor.logs.any { it.startsWith("users_refresh_started") })
+        assertTrue(monitor.logs.any { it.startsWith("users_refresh_succeeded") })
+        assertTrue(monitor.nonFatals.isEmpty())
+        assertEquals(1, monitor.trace.stopCalls)
     }
 
     @Test
@@ -63,37 +69,52 @@ class UserRepositoryImplTest {
         val result = repo.refreshUsers(RefreshSource.MANUAL)
         assertEquals(AppResult.Failure(AppError.Network), result)
         assertEquals(9, local.saved.single().id)
+        assertEquals("failure", monitor.trace.attributes["result"])
         assertEquals("network", monitor.trace.attributes["error_type"])
+        assertEquals("manual", monitor.keys["refresh_trigger"])
+        assertEquals("failure", monitor.keys["refresh_result"])
+        assertEquals("network", monitor.keys["refresh_error_type"])
+        assertTrue(monitor.logs.any { it == "users_refresh_failed type=network" })
         assertTrue(monitor.nonFatals.isEmpty())
+        assertEquals(1, monitor.trace.stopCalls)
     }
 
     @Test
     fun `unsuccessful HTTP response preserves cached content and maps status`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val monitor = RecordingQualityMonitor()
         val repo = UserRepositoryImpl(object : UserRemoteDataSource {
             override suspend fun getUsers(): List<UserDto> = throw HttpException(
                 Response.error<Unit>(500, "server error".toResponseBody()),
             )
-        }, local, Dispatchers.Unconfined)
+        }, local, Dispatchers.Unconfined, monitor)
 
         val result = repo.refreshUsers(RefreshSource.MANUAL)
 
         assertEquals(AppResult.Failure(AppError.Http(500)), result)
         assertEquals(listOf(9), local.saved.map { it.id })
+        assertEquals("failure", monitor.trace.attributes["result"])
+        assertEquals("http_500", monitor.trace.attributes["error_type"])
+        assertTrue(monitor.nonFatals.isEmpty())
+        assertEquals(1, monitor.trace.stopCalls)
     }
 
     @Test
     fun `malformed response preserves cached content and maps invalid data`() = runTest {
         val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val monitor = RecordingQualityMonitor()
         val repo = UserRepositoryImpl(object : UserRemoteDataSource {
             override suspend fun getUsers(): List<UserDto> =
                 throw SerializationException("Malformed users response")
-        }, local, Dispatchers.Unconfined)
+        }, local, Dispatchers.Unconfined, monitor)
 
         val result = repo.refreshUsers(RefreshSource.RETRY)
 
         assertEquals(AppResult.Failure(AppError.InvalidData), result)
         assertEquals(listOf(9), local.saved.map { it.id })
+        assertEquals("invalid_data", monitor.trace.attributes["error_type"])
+        assertEquals(1, monitor.nonFatals.size)
+        assertEquals(1, monitor.trace.stopCalls)
     }
 
     @Test
@@ -178,11 +199,22 @@ class UserRepositoryImplTest {
         assertTrue(local.saved.isEmpty())
     }
 
-    @Test(expected = CancellationException::class)
-    fun `refresh never hides cancellation`() = runTest {
-        UserRepositoryImpl(object : UserRemoteDataSource {
+    @Test
+    fun `refresh records cancellation stops trace and never hides cancellation`() = runTest {
+        val monitor = RecordingQualityMonitor()
+        val repository = UserRepositoryImpl(object : UserRemoteDataSource {
             override suspend fun getUsers(): List<UserDto> = throw CancellationException()
-        }, FakeLocal(), Dispatchers.Unconfined).refreshUsers()
+        }, FakeLocal(), Dispatchers.Unconfined, monitor)
+
+        val error = runCatching {
+            repository.refreshUsers(RefreshSource.BACKGROUND)
+        }.exceptionOrNull()
+
+        assertTrue(error is CancellationException)
+        assertEquals("background", monitor.trace.attributes["trigger"])
+        assertEquals("cancelled", monitor.trace.attributes["result"])
+        assertTrue(monitor.nonFatals.isEmpty())
+        assertEquals(1, monitor.trace.stopCalls)
     }
 
     @Test
@@ -220,7 +252,8 @@ private class RecordingQualityMonitor : AppQualityMonitor {
 private class RecordingQualityTrace : QualityTrace {
     val attributes = mutableMapOf<String, String>()
     val metrics = mutableMapOf<String, Long>()
-    var stopped = false
+    var stopCalls = 0
+        private set
 
     override fun putAttribute(name: String, value: String) {
         attributes[name] = value
@@ -231,7 +264,7 @@ private class RecordingQualityTrace : QualityTrace {
     }
 
     override fun stop() {
-        stopped = true
+        stopCalls++
     }
 }
 

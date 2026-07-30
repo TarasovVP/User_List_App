@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.userlistapp.R
+import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.core.ui.UiAnimationLabels
 import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.core.ui.UiTextSnackbarEffect
@@ -61,6 +62,14 @@ import java.util.Date
 fun UserDetailsRoute(onBack: () -> Unit, viewModel: UserDetailsViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    TrackJankStates(
+        mapOf(
+            SCREEN_STATE_KEY to DETAILS_SCREEN_VALUE,
+            PHASE_STATE_KEY to state.qualityPhase,
+            INTERACTION_STATE_KEY to state.qualityInteraction,
+            VISIBLE_USERS_STATE_KEY to NOT_APPLICABLE_VALUE,
+        ),
+    )
     UiTextSnackbarEffect(viewModel.events, snackbar)
     UserDetailsScreen(
         state,
@@ -72,6 +81,21 @@ fun UserDetailsRoute(onBack: () -> Unit, viewModel: UserDetailsViewModel = hiltV
         snackbar
     )
 }
+
+private val UserDetailsUiState.qualityPhase: String
+    get() = when {
+        isLoading -> LOADING_PHASE_VALUE
+        user == null -> NOT_FOUND_PHASE_VALUE
+        isSaving -> SAVING_PHASE_VALUE
+        else -> CONTENT_PHASE_VALUE
+    }
+
+private val UserDetailsUiState.qualityInteraction: String
+    get() = when {
+        isSaving -> NOTE_SAVE_INTERACTION_VALUE
+        noteDraft != user?.note.orEmpty() -> NOTE_EDIT_INTERACTION_VALUE
+        else -> BROWSING_INTERACTION_VALUE
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -287,3 +311,17 @@ private fun Detail(label: String, value: String) {
         )
     }
 }
+
+private const val SCREEN_STATE_KEY = "screen"
+private const val PHASE_STATE_KEY = "phase"
+private const val INTERACTION_STATE_KEY = "interaction"
+private const val VISIBLE_USERS_STATE_KEY = "visible_users"
+private const val DETAILS_SCREEN_VALUE = "user_details"
+private const val NOT_APPLICABLE_VALUE = "not_applicable"
+private const val LOADING_PHASE_VALUE = "loading"
+private const val NOT_FOUND_PHASE_VALUE = "not_found"
+private const val SAVING_PHASE_VALUE = "saving"
+private const val CONTENT_PHASE_VALUE = "content"
+private const val NOTE_SAVE_INTERACTION_VALUE = "note_save"
+private const val NOTE_EDIT_INTERACTION_VALUE = "note_edit"
+private const val BROWSING_INTERACTION_VALUE = "browsing"

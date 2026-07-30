@@ -31,10 +31,12 @@ import com.example.userlistapp.R
 import com.example.userlistapp.core.navigation.AccountDestination
 import com.example.userlistapp.core.navigation.UserDetailsDestination
 import com.example.userlistapp.core.navigation.UsersDestination
+import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.feature.account.AccountScreen
 import com.example.userlistapp.feature.account.AccountImplementation
 import com.example.userlistapp.feature.account.AuthViewModel
+import com.example.userlistapp.feature.account.AuthUiState
 import com.example.userlistapp.feature.account.AuthenticationRequired
 import com.example.userlistapp.feature.account.SignInSheet
 import com.example.userlistapp.feature.account.modular.AccountContent
@@ -121,6 +123,14 @@ fun AppNavigation(
                 )
             }
             composable<AccountDestination> {
+                TrackJankStates(
+                    mapOf(
+                        SCREEN_STATE_KEY to ACCOUNT_SCREEN_VALUE,
+                        PHASE_STATE_KEY to auth.accountQualityPhase,
+                        INTERACTION_STATE_KEY to auth.accountQualityInteraction,
+                        VISIBLE_USERS_STATE_KEY to NOT_APPLICABLE_VALUE,
+                    ),
+                )
                 val openSignIn = {
                     authViewModel.clearLoginError()
                     showSignIn = true
@@ -185,6 +195,24 @@ fun AppNavigation(
     }
 }
 
+private val AuthUiState.accountQualityPhase: String
+    get() = when {
+        session is SessionState.Initializing -> INITIALIZING_PHASE_VALUE
+        isSigningIn -> SIGNING_IN_PHASE_VALUE
+        session is SessionState.SignedOut -> SIGNED_OUT_PHASE_VALUE
+        isAccountLoading -> LOADING_PHASE_VALUE
+        accountError != null -> ERROR_PHASE_VALUE
+        account != null -> CONTENT_PHASE_VALUE
+        else -> EMPTY_PHASE_VALUE
+    }
+
+private val AuthUiState.accountQualityInteraction: String
+    get() = when {
+        isSigningIn -> SIGN_IN_INTERACTION_VALUE
+        localAvatarUri != null -> LOCAL_AVATAR_INTERACTION_VALUE
+        else -> BROWSING_INTERACTION_VALUE
+    }
+
 private fun NavHostController.navigateTopLevel(route: Any) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
@@ -192,3 +220,20 @@ private fun NavHostController.navigateTopLevel(route: Any) {
         restoreState = true
     }
 }
+
+private const val SCREEN_STATE_KEY = "screen"
+private const val PHASE_STATE_KEY = "phase"
+private const val INTERACTION_STATE_KEY = "interaction"
+private const val VISIBLE_USERS_STATE_KEY = "visible_users"
+private const val ACCOUNT_SCREEN_VALUE = "account"
+private const val NOT_APPLICABLE_VALUE = "not_applicable"
+private const val INITIALIZING_PHASE_VALUE = "initializing"
+private const val SIGNING_IN_PHASE_VALUE = "signing_in"
+private const val SIGNED_OUT_PHASE_VALUE = "signed_out"
+private const val LOADING_PHASE_VALUE = "loading"
+private const val ERROR_PHASE_VALUE = "error"
+private const val CONTENT_PHASE_VALUE = "content"
+private const val EMPTY_PHASE_VALUE = "empty"
+private const val SIGN_IN_INTERACTION_VALUE = "sign_in"
+private const val LOCAL_AVATAR_INTERACTION_VALUE = "local_avatar"
+private const val BROWSING_INTERACTION_VALUE = "browsing"
