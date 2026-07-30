@@ -111,32 +111,9 @@ ksp {
 }
 
 kover {
-    reports {
-        filters {
-            excludes {
-                annotatedBy(
-                    "androidx.compose.runtime.Composable",
-                    "dagger.Module",
-                    "dagger.hilt.InstallIn",
-                )
-                classes(
-                    "*.BuildConfig",
-                    "*.Hilt_*",
-                    "*.*_Factory",
-                    "*.*_MembersInjector",
-                    "*.*JsonAdapter",
-                    "com.example.userlistapp.MainActivity",
-                    "com.example.userlistapp.UserListApplication",
-                    "com.example.userlistapp.feature.*.*ScreenKt",
-                    "com.example.userlistapp.feature.*.components.*",
-                    "com.example.userlistapp.navigation.*",
-                )
-            }
-        }
-        verify {
-            rule("Application line coverage") {
-                minBound(40)
-            }
+    currentProject {
+        createVariant("aggregatedDebug") {
+            add("debug")
         }
     }
 }

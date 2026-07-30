@@ -62,6 +62,23 @@ class UserListFilteringTest {
         assertEquals(listOf(1), result.map { it.id })
     }
 
+    @Test
+    fun `multi-word search allows terms to match different fields`() {
+        val result = filterAndSortUsers(
+            users = listOf(grace, ada),
+            query = "  ADA   analytical  ",
+            sort = UserSort.NAME_ASCENDING,
+            favoritesOnly = false,
+        )
+
+        assertEquals(listOf(1), result.map { it.id })
+    }
+
+    @Test
+    fun `multi-word search requires every term to match`() {
+        assertTrue(search("Ada missing").isEmpty())
+    }
+
     private fun search(query: String) = filterAndSortUsers(
         users = listOf(ada, grace),
         query = query,

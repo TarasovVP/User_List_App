@@ -65,17 +65,23 @@ class FilterAndSortUsersUseCase @Inject constructor() {
         sort: UserSort,
         favoritesOnly: Boolean,
     ): List<User> {
-        val needle = query.trim()
+        val terms = query.trim().split(QUERY_WHITESPACE).filter(String::isNotEmpty)
         val nameComparator = compareBy<User> { it.fullName.lowercase() }
         return users.asSequence()
             .filter { !favoritesOnly || it.isFavorite }
             .filter { user ->
-                needle.isBlank() || listOf(user.fullName, user.email, user.companyName)
-                    .any { value -> value.contains(needle, ignoreCase = true) }
+                val searchableFields = listOf(user.fullName, user.email, user.companyName)
+                terms.all { term ->
+                    searchableFields.any { value -> value.contains(term, ignoreCase = true) }
+                }
             }
             .sortedWith(
                 if (sort == UserSort.NAME_ASCENDING) nameComparator else nameComparator.reversed(),
             )
             .toList()
+    }
+
+    private companion object {
+        val QUERY_WHITESPACE = Regex("\\s+")
     }
 }
