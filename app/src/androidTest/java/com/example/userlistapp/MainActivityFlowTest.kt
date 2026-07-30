@@ -16,6 +16,8 @@ import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.AppQualityMonitor
 import com.example.userlistapp.core.quality.NoOpAppQualityMonitor
 import com.example.userlistapp.core.ui.UiTestTags
+import com.example.userlistapp.data.realtime.RealtimeConnectionState
+import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.di.AppModule
 import com.example.userlistapp.feature.account.AccountImplementationFlag
 import com.example.userlistapp.domain.model.Account
@@ -36,9 +38,11 @@ import dagger.hilt.android.testing.UninstallModules
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -54,6 +58,7 @@ class MainActivityFlowTest {
 
     private val users = FakeUserRepository()
     private val auth = FakeAuthSessionRepository()
+    private val realtime = FakeUserRealtimeClient()
 
     @BindValue
     @JvmField
@@ -74,6 +79,10 @@ class MainActivityFlowTest {
     @BindValue
     @JvmField
     val syncScheduler: SyncScheduler = FakeSyncScheduler()
+
+    @BindValue
+    @JvmField
+    val realtimeClient: UserRealtimeClient = realtime
 
     @BindValue
     @DefaultDispatcher
@@ -104,6 +113,7 @@ class MainActivityFlowTest {
         compose.onNodeWithTag(UiTestTags.LOGIN_SUBMIT).performClick()
 
         compose.waitForText(context.getString(R.string.users_title))
+        compose.runOnIdle { assertTrue(realtime.connectCalls > 0) }
         compose.onNodeWithContentDescription(context.getString(R.string.search_users))
             .performClick()
         compose.onNodeWithTag(UiTestTags.SEARCH).performTextInput("Grace")
@@ -111,6 +121,7 @@ class MainActivityFlowTest {
         compose.onNodeWithTag(UiTestTags.user(2)).performClick()
 
         compose.waitForText("Grace Hopper")
+        compose.runOnIdle { assertTrue(realtime.disconnectCalls > 0) }
         compose.onNodeWithTag(UiTestTags.NOTE_FIELD).performScrollTo().performTextInput(note)
         compose.onNodeWithTag(UiTestTags.SAVE_NOTE)
             .performScrollTo()
@@ -132,6 +143,24 @@ class MainActivityFlowTest {
             onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
     }
+}
+
+private class FakeUserRealtimeClient : UserRealtimeClient {
+    override val connectionState =
+        MutableStateFlow<RealtimeConnectionState>(RealtimeConnectionState.Disconnected)
+    override val messages: Flow<String> = emptyFlow()
+    var connectCalls = 0
+    var disconnectCalls = 0
+
+    override fun connect() {
+        connectCalls++
+    }
+
+    override fun disconnect() {
+        disconnectCalls++
+    }
+
+    override fun send(message: String): Boolean = false
 }
 
 private class FakeAuthSessionRepository : AuthSessionRepository {

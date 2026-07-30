@@ -19,10 +19,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.SerializationException
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
+import retrofit2.HttpException
+import retrofit2.Response
 
 class UserRepositoryImplTest {
     @Test
@@ -61,6 +65,35 @@ class UserRepositoryImplTest {
         assertEquals(9, local.saved.single().id)
         assertEquals("network", monitor.trace.attributes["error_type"])
         assertTrue(monitor.nonFatals.isEmpty())
+    }
+
+    @Test
+    fun `unsuccessful HTTP response preserves cached content and maps status`() = runTest {
+        val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val repo = UserRepositoryImpl(object : UserRemoteDataSource {
+            override suspend fun getUsers(): List<UserDto> = throw HttpException(
+                Response.error<Unit>(500, "server error".toResponseBody()),
+            )
+        }, local, Dispatchers.Unconfined)
+
+        val result = repo.refreshUsers(RefreshSource.MANUAL)
+
+        assertEquals(AppResult.Failure(AppError.Http(500)), result)
+        assertEquals(listOf(9), local.saved.map { it.id })
+    }
+
+    @Test
+    fun `malformed response preserves cached content and maps invalid data`() = runTest {
+        val local = FakeLocal().apply { saved = listOf(entity(9)) }
+        val repo = UserRepositoryImpl(object : UserRemoteDataSource {
+            override suspend fun getUsers(): List<UserDto> =
+                throw SerializationException("Malformed users response")
+        }, local, Dispatchers.Unconfined)
+
+        val result = repo.refreshUsers(RefreshSource.RETRY)
+
+        assertEquals(AppResult.Failure(AppError.InvalidData), result)
+        assertEquals(listOf(9), local.saved.map { it.id })
     }
 
     @Test

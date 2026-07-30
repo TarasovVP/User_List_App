@@ -16,6 +16,8 @@ import com.example.userlistapp.domain.usecase.FilterAndSortUsersUseCase
 import com.example.userlistapp.domain.usecase.ObserveUsersUseCase
 import com.example.userlistapp.domain.usecase.RefreshUsersUseCase
 import com.example.userlistapp.domain.usecase.ToggleFavoriteUseCase
+import com.example.userlistapp.data.realtime.RealtimeConnectionState
+import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.feature.users.list.UserListViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -120,6 +122,37 @@ class UserListViewModelTest {
     }
 
     @Test
+    fun `HTTP and malformed refresh failures terminate loading and preserve cache`() =
+        runTest(main.dispatcher) {
+            listOf(AppError.Http(500), AppError.InvalidData).forEach { error ->
+                val repo = FakeUserRepository(
+                    listOf(sampleUser()),
+                    AppResult.Failure(error),
+                )
+                val vm = viewModel(repo)
+                collectState(vm)
+                advanceUntilIdle()
+
+                assertEquals(listOf(1), vm.uiState.value.users.map(User::id))
+                assertFalse(vm.uiState.value.isInitialLoading)
+                assertFalse(vm.uiState.value.isRefreshing)
+            }
+        }
+
+    @Test
+    fun `route lifecycle starts and closes realtime connection`() = runTest(main.dispatcher) {
+        val realtime = FakeUserRealtimeClient()
+        val vm = viewModel(FakeUserRepository(emptyList()), realtime)
+
+        vm.onRouteActive()
+        vm.onRouteActive()
+        vm.onRouteInactive()
+
+        assertEquals(2, realtime.connectCalls)
+        assertEquals(1, realtime.disconnectCalls)
+    }
+
+    @Test
     fun `initial loading remains visible while first refresh is running`() =
         runTest(main.dispatcher) {
             val gate = CompletableDeferred<Unit>()
@@ -202,17 +235,39 @@ class UserListViewModelTest {
             coVerify(exactly = 1) { repository.refreshUsers(RefreshSource.INITIAL) }
         }
 
-    private fun viewModel(repo: UserRepository) = UserListViewModel(
+    private fun viewModel(
+        repo: UserRepository,
+        realtime: UserRealtimeClient = FakeUserRealtimeClient(),
+    ) = UserListViewModel(
         ObserveUsersUseCase(repo),
         RefreshUsersUseCase(repo, SignedInSessionRepository, AuthSessionGuard()),
         ToggleFavoriteUseCase(repo),
         FilterAndSortUsersUseCase(),
+        realtime,
         main.dispatcher,
     )
 
     private fun TestScope.collectState(viewModel: UserListViewModel) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect() }
     }
+}
+
+private class FakeUserRealtimeClient : UserRealtimeClient {
+    override val connectionState =
+        MutableStateFlow<RealtimeConnectionState>(RealtimeConnectionState.Disconnected)
+    override val messages = MutableSharedFlow<String>()
+    var connectCalls = 0
+    var disconnectCalls = 0
+
+    override fun connect() {
+        connectCalls++
+    }
+
+    override fun disconnect() {
+        disconnectCalls++
+    }
+
+    override fun send(message: String): Boolean = false
 }
 
 private object SignedInSessionRepository : AuthSessionRepository {

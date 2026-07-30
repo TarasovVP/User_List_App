@@ -32,6 +32,7 @@ import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.core.ui.UiTextSnackbarEffect
+import com.example.userlistapp.data.realtime.RealtimeConnectionState
 import com.example.userlistapp.domain.model.Account
 import com.example.userlistapp.domain.model.SessionState
 import com.example.userlistapp.domain.model.ThemeMode
@@ -163,6 +164,48 @@ class UserScreensTest {
         }
         compose.waitForIdle()
         compose.onNodeWithTag(UiTestTags.USER_LIST).assertIsDisplayed()
+    }
+
+    @Test
+    fun listDisplaysWebSocketStateAndSendsTestMessage() {
+        var sent = false
+        compose.setContent {
+            UserListTheme(ThemeMode.LIGHT) {
+                val state = UserListUiState(
+                    users = listOf(user(1, "Ada")),
+                    hasCachedUsers = true,
+                    isInitialLoading = false,
+                    realtimeConnection = RealtimeConnectionState.Connected,
+                    realtimeMessages = listOf("""{"type":"echo","received":true}"""),
+                )
+                UserListScreen(
+                    state = state,
+                    contentState = state.toContentState(initialErrorMessage = null),
+                    onQuery = {},
+                    onSort = {},
+                    onFavoritesOnly = {},
+                    onRefresh = {},
+                    onUser = {},
+                    onFavorite = {},
+                    onSettings = {},
+                    onSendRealtime = { sent = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText(
+            context.getString(
+                R.string.websocket_status,
+                context.getString(R.string.websocket_connected),
+            ),
+        )
+            .assertIsDisplayed()
+        compose.onNodeWithText("""{"type":"echo","received":true}""")
+            .assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.websocket_send_test))
+            .assertIsEnabled()
+            .performClick()
+        compose.runOnIdle { assertTrue(sent) }
     }
 
     @Test

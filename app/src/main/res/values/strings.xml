@@ -64,6 +64,16 @@
     <string name="error_storage">The local data could not be updated.</string>
     <string name="error_avatar_storage">The selected photo could not be saved on this device.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="websocket_title">Live echo</string>
+    <string name="websocket_status">Connection: %1$s</string>
+    <string name="websocket_disconnected">Disconnected</string>
+    <string name="websocket_connecting">Connecting…</string>
+    <string name="websocket_connected">Connected</string>
+    <string name="websocket_reconnecting">Reconnecting (%1$d/%2$d)…</string>
+    <string name="websocket_failed">Connection failed</string>
+    <string name="websocket_no_messages">No echo received yet.</string>
+    <string name="websocket_send_test">Send JSON test message</string>
+    <string name="websocket_send_unavailable">The live connection is not ready.</string>
     <string name="username">Username</string>
     <string name="age">Age</string>
     <string name="email">Email</string>

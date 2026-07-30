@@ -23,6 +23,8 @@ import com.example.userlistapp.data.remote.AuthTokenHolder
 import com.example.userlistapp.data.remote.RetrofitUserRemoteDataSource
 import com.example.userlistapp.data.remote.UserApi
 import com.example.userlistapp.data.remote.UserRemoteDataSource
+import com.example.userlistapp.data.realtime.OkHttpUserRealtimeClient
+import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.data.repository.AuthSessionRepositoryImpl
 import com.example.userlistapp.data.repository.UserRepositoryImpl
 import com.example.userlistapp.domain.repository.AuthSessionGuard
@@ -168,6 +170,10 @@ object AppModule {
     @Provides
     @Singleton
     fun remote(api: UserApi): UserRemoteDataSource = RetrofitUserRemoteDataSource(api)
+
+    @Provides
+    @Singleton
+    fun realtime(implementation: OkHttpUserRealtimeClient): UserRealtimeClient = implementation
 
     @Provides
     @Singleton

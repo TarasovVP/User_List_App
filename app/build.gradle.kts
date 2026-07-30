@@ -46,6 +46,11 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "com.example.userlistapp.HiltTestRunner"
         buildConfigField("String", "API_BASE_URL", "\"https://dummyjson.com/\"")
+        buildConfigField(
+            "String",
+            "WEBSOCKET_URL",
+            "\"wss://ws.postman-echo.com/raw\"",
+        )
         buildConfigField("boolean", "USE_MODULAR_ACCOUNT", useModularAccount.get())
     }
 
@@ -176,6 +181,7 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.kotest.property)
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

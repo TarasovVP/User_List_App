@@ -1,0 +1,304 @@
+openapi: 3.1.0
+info:
+  title: GD User List App API
+  version: 1.0.0
+  description: |
+    Contract for every DummyJSON HTTP operation used by the Android application.
+    User-directory access is protected by the app session boundary. DummyJSON itself
+    permits anonymous user reads, while the client conditionally sends the bearer
+    token obtained from the login operation.
+  license:
+    name: Internal training artifact
+    identifier: LicenseRef-Internal-Training
+servers:
+  - url: https://dummyjson.com
+    description: DummyJSON public service
+tags:
+  - name: Users
+    description: User-directory reads used by the list and account screens.
+  - name: Authentication
+    description: DummyJSON credential exchange used by the simulated app session.
+paths:
+  /users:
+    get:
+      operationId: getUsers
+      summary: Load the user directory
+      tags:
+        - Users
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum result count. The app sends 0 to request the complete collection.
+          schema:
+            type: integer
+            minimum: 0
+            default: 30
+          example: 0
+      responses:
+        "200":
+          description: User collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/{id}:
+    get:
+      operationId: getUser
+      summary: Load a user profile
+      tags:
+        - Users
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Numeric DummyJSON user identifier.
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /auth/login:
+    post:
+      operationId: login
+      summary: Create a DummyJSON authenticated session
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              placeholder:
+                value:
+                  username: replace-with-public-sample-username
+                  password: replace-with-public-sample-password
+      responses:
+        "200":
+          description: Authenticated account and bearer tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedAccount"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token returned by POST /auth/login.
+  responses:
+    BadRequest:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Requested user does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServerError:
+      description: Unexpected service failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    UsersResponse:
+      type: object
+      additionalProperties: true
+      required:
+        - users
+        - total
+        - skip
+        - limit
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+          minimum: 0
+        skip:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 0
+    User:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - firstName
+        - lastName
+        - age
+        - email
+        - phone
+        - username
+        - image
+        - role
+        - company
+        - address
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        firstName:
+          type: string
+        lastName:
+          type: string
+        age:
+          type: integer
+          minimum: 0
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        username:
+          type: string
+        image:
+          type: string
+          format: uri
+        role:
+          type: string
+        company:
+          $ref: "#/components/schemas/Company"
+        address:
+          $ref: "#/components/schemas/Address"
+    Company:
+      type: object
+      additionalProperties: true
+      required:
+        - name
+        - department
+        - title
+      properties:
+        name:
+          type: string
+        department:
+          type: string
+        title:
+          type: string
+    Address:
+      type: object
+      additionalProperties: true
+      required:
+        - address
+        - city
+        - state
+        - country
+      properties:
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        stateCode:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+    Coordinates:
+      type: object
+      required:
+        - lat
+        - lng
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          format: password
+          minLength: 1
+        expiresInMins:
+          type: integer
+          minimum: 1
+          description: Optional DummyJSON access-token lifetime; the app uses the service default.
+    Account:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          required:
+            - id
+            - username
+          properties:
+            id:
+              type: integer
+              minimum: 1
+            username:
+              type: string
+    AuthenticatedAccount:
+      allOf:
+        - $ref: "#/components/schemas/Account"
+        - type: object
+          required:
+            - accessToken
+            - refreshToken
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        message:
+          type: string

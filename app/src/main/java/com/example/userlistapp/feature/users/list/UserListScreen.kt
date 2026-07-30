@@ -54,6 +54,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,12 +88,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.userlistapp.R
 import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.quality.TrackJankStates
 import com.example.userlistapp.core.ui.UiAnimationLabels
 import com.example.userlistapp.core.ui.UiTestTags
 import com.example.userlistapp.core.ui.UiTextSnackbarEffect
+import com.example.userlistapp.data.realtime.RealtimeConnectionState
 import com.example.userlistapp.domain.model.ThemeMode
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
@@ -109,6 +114,24 @@ fun UserListRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.onRouteActive()
+                Lifecycle.Event.ON_STOP -> viewModel.onRouteInactive()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            viewModel.onRouteActive()
+        }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.onRouteInactive()
+        }
+    }
     val contentState = state.toContentState(
         initialErrorMessage = state.initialError?.resolve(context),
     )
@@ -132,6 +155,7 @@ fun UserListRoute(
         viewModel::toggleFavorite,
         onSettings,
         snackbar,
+        onSendRealtime = viewModel::sendRealtimeTestMessage,
     )
 }
 
@@ -190,6 +214,7 @@ fun UserListScreen(
     onFavorite: (User) -> Unit,
     onSettings: () -> Unit,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
+    onSendRealtime: () -> Unit = {},
 ) {
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var searchValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -357,6 +382,7 @@ fun UserListScreen(
                     onRefresh = onRefresh,
                     onUser = onUser,
                     onFavorite = onFavorite,
+                    onSendRealtime = onSendRealtime,
                 )
             }
         }
@@ -375,6 +401,7 @@ private fun RefreshableUserContent(
     onRefresh: () -> Unit,
     onUser: (Int) -> Unit,
     onFavorite: (User) -> Unit,
+    onSendRealtime: () -> Unit,
 ) {
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -391,6 +418,11 @@ private fun RefreshableUserContent(
     ) {
         Column(Modifier.fillMaxSize()) {
             UserControls(state, onSort, onFavoritesOnly)
+            RealtimeCard(
+                connectionState = state.realtimeConnection,
+                lastMessage = state.realtimeMessages.lastOrNull(),
+                onSend = onSendRealtime,
+            )
             if (showEmptyState) {
                 Box(
                     Modifier
@@ -427,6 +459,57 @@ private fun RefreshableUserContent(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RealtimeCard(
+    connectionState: RealtimeConnectionState,
+    lastMessage: String?,
+    onSend: () -> Unit,
+) {
+    val connectionLabel = when (connectionState) {
+        RealtimeConnectionState.Disconnected -> stringResource(R.string.websocket_disconnected)
+        RealtimeConnectionState.Connecting -> stringResource(R.string.websocket_connecting)
+        RealtimeConnectionState.Connected -> stringResource(R.string.websocket_connected)
+        is RealtimeConnectionState.Reconnecting -> stringResource(
+            R.string.websocket_reconnecting,
+            connectionState.attempt,
+            connectionState.maxAttempts,
+        )
+        RealtimeConnectionState.Failed -> stringResource(R.string.websocket_failed)
+    }
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Column(
+            Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                stringResource(R.string.websocket_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                stringResource(R.string.websocket_status, connectionLabel),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                lastMessage ?: stringResource(R.string.websocket_no_messages),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(
+                onClick = onSend,
+                enabled = connectionState == RealtimeConnectionState.Connected,
+            ) {
+                Text(stringResource(R.string.websocket_send_test))
             }
         }
     }

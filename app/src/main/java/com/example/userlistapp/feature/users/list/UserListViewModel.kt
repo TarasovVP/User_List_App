@@ -2,11 +2,14 @@ package com.example.userlistapp.feature.users.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.userlistapp.R
 import com.example.userlistapp.core.common.AppResult
 import com.example.userlistapp.core.common.DefaultDispatcher
 import com.example.userlistapp.core.common.EMPTY
 import com.example.userlistapp.core.common.UiText
 import com.example.userlistapp.core.ui.toUiText
+import com.example.userlistapp.data.realtime.RealtimeConnectionState
+import com.example.userlistapp.data.realtime.UserRealtimeClient
 import com.example.userlistapp.domain.model.RefreshSource
 import com.example.userlistapp.domain.model.User
 import com.example.userlistapp.domain.model.UserSort
@@ -39,6 +42,8 @@ data class UserListUiState(
     val query: String = String.EMPTY,
     val sort: UserSort = UserSort.NAME_ASCENDING,
     val favoritesOnly: Boolean = false,
+    val realtimeConnection: RealtimeConnectionState = RealtimeConnectionState.Disconnected,
+    val realtimeMessages: List<String> = emptyList(),
 )
 
 @HiltViewModel
@@ -47,19 +52,21 @@ class UserListViewModel @Inject constructor(
     private val refreshUsers: RefreshUsersUseCase,
     private val toggleFavorite: ToggleFavoriteUseCase,
     private val filterAndSortUsers: FilterAndSortUsersUseCase,
+    private val realtimeClient: UserRealtimeClient,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val query = MutableStateFlow(String.EMPTY)
     private val sort = MutableStateFlow(UserSort.NAME_ASCENDING)
     private val favoritesOnly = MutableStateFlow(false)
     private val refreshState = MutableStateFlow(RefreshState(running = true))
+    private val realtimeMessages = MutableStateFlow<List<String>>(emptyList())
     private val refreshInFlight = AtomicBoolean(false)
     private val _events = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
     private val cachedUsers: StateFlow<List<User>?> = observeUsers()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val uiState: StateFlow<UserListUiState> = combine(
+    private val userListState = combine(
         cachedUsers, query, sort, favoritesOnly, refreshState,
     ) { cachedValue, queryValue, sortValue, favoritesValue, refreshValue ->
         val cached = cachedValue.orEmpty()
@@ -74,12 +81,28 @@ class UserListViewModel @Inject constructor(
             sort = sortValue,
             favoritesOnly = favoritesValue,
         )
+    }.flowOn(defaultDispatcher)
+
+    val uiState: StateFlow<UserListUiState> = combine(
+        userListState,
+        realtimeClient.connectionState,
+        realtimeMessages,
+    ) { userState, connectionState, messages ->
+        userState.copy(
+            realtimeConnection = connectionState,
+            realtimeMessages = messages,
+        )
     }
-        .flowOn(defaultDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserListUiState())
 
     init {
         refresh(RefreshSource.INITIAL)
+        viewModelScope.launch {
+            realtimeClient.messages.collect { message ->
+                realtimeMessages.value =
+                    (realtimeMessages.value + message).takeLast(MAX_REALTIME_MESSAGES)
+            }
+        }
     }
 
     fun setQuery(value: String) {
@@ -100,6 +123,20 @@ class UserListViewModel @Inject constructor(
                 is AppResult.Success -> Unit
                 is AppResult.Failure -> _events.emit(result.error.toUiText())
             }
+        }
+    }
+
+    fun onRouteActive() {
+        realtimeClient.connect()
+    }
+
+    fun onRouteInactive() {
+        realtimeClient.disconnect()
+    }
+
+    fun sendRealtimeTestMessage() {
+        if (!realtimeClient.send(TEST_REALTIME_MESSAGE)) {
+            _events.tryEmit(UiText(R.string.websocket_send_unavailable))
         }
     }
 
@@ -132,4 +169,10 @@ class UserListViewModel @Inject constructor(
     }
 
     private data class RefreshState(val running: Boolean = false, val error: UiText? = null)
+
+    private companion object {
+        const val MAX_REALTIME_MESSAGES = 20
+        const val TEST_REALTIME_MESSAGE =
+            """{"type":"echo","message":"Hello from GD User List App"}"""
+    }
 }
